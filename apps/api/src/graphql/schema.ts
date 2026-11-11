@@ -1,18 +1,11 @@
 import { createSchema } from 'graphql-yoga';
 import type { Env } from '../config/env';
-import type { Logger } from '../core/logger';
-import type { Database } from '../db/client';
+import { authResolvers, authTypeDefs } from '../modules/auth/schema';
 import { orgResolvers, orgTypeDefs } from '../modules/org/schema';
-import { createOrgService } from '../modules/org/service';
+import type { Services } from '../services';
 import type { GraphQLContext } from './context';
 
 export type { GraphQLContext };
-
-export interface SchemaDeps {
-  env: Pick<Env, 'INSTANCE_ID'>;
-  db: Database;
-  logger: Logger;
-}
 
 const rootTypeDefs = /* GraphQL */ `
   type Health {
@@ -28,11 +21,9 @@ const rootTypeDefs = /* GraphQL */ `
 `;
 
 /** Root schema: each business module contributes typeDefs and resolvers. */
-export function buildSchema({ env, db, logger }: SchemaDeps) {
-  const orgService = createOrgService({ db, logger });
-
+export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
   return createSchema<GraphQLContext>({
-    typeDefs: [rootTypeDefs, orgTypeDefs],
+    typeDefs: [rootTypeDefs, orgTypeDefs, authTypeDefs],
     resolvers: [
       {
         Query: {
@@ -44,7 +35,8 @@ export function buildSchema({ env, db, logger }: SchemaDeps) {
           }),
         },
       },
-      orgResolvers(orgService),
+      orgResolvers(services.org),
+      authResolvers,
     ],
   });
 }

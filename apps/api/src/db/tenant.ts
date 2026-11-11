@@ -1,5 +1,6 @@
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import type { Database, TenantTx } from './client';
+import { organisations } from './schema';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,5 +25,26 @@ export async function withTenant<T>(
     await tx.execute(sql`SET LOCAL ROLE erp_app`);
     await tx.execute(sql`SELECT set_config('app.tenant_id', ${tenantId}, true)`);
     return fn(tx);
+  });
+}
+
+/**
+ * Resolves an organisation ID (slug) to its tenant, before any tenant context
+ * exists. The slug_lookup policy exposes exactly that one row to this
+ * transaction; every other tenant stays invisible.
+ */
+export async function findTenantBySlug(
+  db: Database,
+  slug: string,
+): Promise<{ id: string; status: 'active' | 'inactive' } | null> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL ROLE erp_app`);
+    await tx.execute(sql`SELECT set_config('app.lookup_slug', ${slug}, true)`);
+    const [row] = await tx
+      .select({ id: organisations.id, status: organisations.status })
+      .from(organisations)
+      .where(eq(organisations.slug, slug))
+      .limit(1);
+    return row ?? null;
   });
 }

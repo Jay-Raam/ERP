@@ -23,7 +23,8 @@ export function plainText(label: string, min: number, max: number) {
     .pipe(
       z
         .string()
-        .min(min, min <= 1 ? `${label} is required` : `${label} must be at least ${min} characters`)
+        .min(1, `${label} is required`)
+        .min(min, `${label} must be at least ${min} characters`)
         .max(max, `${label} must be at most ${max} characters`)
         .regex(/^[^<>]*$/, `${label} cannot contain < or >`),
     );

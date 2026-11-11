@@ -19,12 +19,12 @@ describe('loadEnv', () => {
     expect(env.CORS_ORIGINS).toEqual(['https://a.example', 'https://b.example']);
   });
 
-  it('refuses to boot in production without connection strings', () => {
+  it('refuses to boot in production without connection strings and a JWT secret', () => {
     expect(() => loadEnv({ NODE_ENV: 'production' })).toThrow(EnvError);
     try {
       loadEnv({ NODE_ENV: 'production' });
     } catch (error) {
-      expect((error as EnvError).problems).toHaveLength(3);
+      expect((error as EnvError).problems).toHaveLength(4);
     }
   });
 
@@ -36,6 +36,7 @@ describe('loadEnv', () => {
     ['CORS_ORIGINS', 'javascript:alert(1)'],
     ['DATABASE_URL', 'mysql://x'],
     ['REDIS_URL', 'http://x'],
+    ['JWT_SECRET', 'too-short'],
   ])('rejects %s=%s', (key, value) => {
     expect(() => loadEnv({ [key]: value })).toThrow(EnvError);
   });

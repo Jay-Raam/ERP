@@ -8,6 +8,7 @@ import {
   pgTable,
   primaryKey,
   text,
+  timestamp,
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
@@ -143,5 +144,37 @@ export const userBranches = pgTable(
       foreignColumns: [branches.tenantId, branches.id],
     }).onDelete('cascade'),
     index('user_branches_tenant_branch_idx').on(t.tenantId, t.branchId),
+  ],
+);
+
+/**
+ * One row per issued refresh token. Only the SHA-256 of the token is stored.
+ * Tokens issued from one login share a family; reuse of a spent token revokes
+ * the whole family.
+ */
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    id: id(),
+    tenantId: tenantId(),
+    userId: uuid('user_id').notNull(),
+    familyId: uuid('family_id').notNull(),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    ip: text('ip'),
+    userAgent: text('user_agent'),
+  },
+  (t) => [
+    unique('refresh_tokens_hash_unique').on(t.tokenHash),
+    foreignKey({
+      name: 'refresh_tokens_user_fk',
+      columns: [t.tenantId, t.userId],
+      foreignColumns: [users.tenantId, users.id],
+    }).onDelete('cascade'),
+    index('refresh_tokens_family_idx').on(t.tenantId, t.familyId),
+    index('refresh_tokens_user_idx').on(t.tenantId, t.userId),
   ],
 );

@@ -15,6 +15,13 @@
       "when": 1794376497838,
       "tag": "0001_tenant_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794377081759,
+      "tag": "0002_auth_sessions",
+      "breakpoints": true
     }
   ]
 }

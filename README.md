@@ -19,7 +19,7 @@ pnpm db:migrate           # create or update the tables
 pnpm dev                  # web on :3000, api on :4000
 ```
 
-Open http://localhost:3000. GraphiQL is at http://localhost:4000/graphql in development.
+Open http://localhost:3000, create an organisation, then sign in. GraphiQL is at http://localhost:4000/graphql in development.
 
 ## Commands
 
@@ -43,6 +43,16 @@ apps/web          Next.js app (App Router, Tailwind, shadcn/ui)
 packages/shared   error codes, permission helpers, zod schemas used by both apps
 packages/config   shared ESLint and TypeScript presets
 ```
+
+## Sign-in and sessions
+
+- `POST /auth/login`, `/auth/refresh` and `/auth/logout` are REST endpoints on the API; everything else is GraphQL. The web app forwards `/auth/*` and `/graphql` to the API, so the browser only talks to one origin.
+- A session is three httpOnly cookies: a 15-minute access token, a 7-day refresh token (sent only to `/auth`), and a marker the web app's route guard reads. JavaScript cannot read any of them.
+- Each refresh token works once. If a spent one is presented again, the whole session is revoked.
+- Signing out, deactivating a user or deactivating an organisation takes effect on the next request.
+- Five failed sign-ins lock that organisation + email for 15 minutes. Counters live in Redis; if Redis is down each API instance counts in memory.
+- Every write must carry the `x-erp-client` header and, if the browser sends an `Origin`, it must be listed in `CORS_ORIGINS`.
+- Tests need PostgreSQL and Redis running (`pnpm infra:up`).
 
 ## Database and tenants
 

@@ -1,6 +1,12 @@
 import { createApp } from './app';
 import { EnvError, loadEnv } from './config/env';
 import { createLogger } from './core/logger';
+import {
+  createMemoryRateLimiter,
+  createRedisRateLimiter,
+  createResilientRateLimiter,
+} from './core/rate-limit';
+import { createRedis } from './core/redis';
 import { createDatabase } from './db/client';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
@@ -18,7 +24,26 @@ function main(): void {
   const logger = createLogger(env);
   // Connects lazily: the API still boots if PostgreSQL is down, and /health/ready reports it.
   const database = createDatabase(env.DATABASE_URL);
-  const app = createApp({ env, logger, database });
+  const redis = createRedis(env.REDIS_URL, logger);
+  const limiter = createResilientRateLimiter(
+    createRedisRateLimiter(redis.client),
+    createMemoryRateLimiter(),
+    logger,
+  );
+  const app = createApp({
+    env,
+    logger,
+    database,
+    limiter,
+    readinessChecks: [
+      { name: 'postgres', check: database.ping },
+      // Rate limiting falls back to memory, so Redis being down does not stop the API.
+      { name: 'redis', check: redis.ping, critical: false },
+    ],
+  });
+  if (env.NODE_ENV !== 'production' && !process.env.JWT_SECRET) {
+    logger.warn('JWT_SECRET is not set; using the built-in development secret');
+  }
   const server = app.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: env.NODE_ENV }, 'api listening');
   });
@@ -31,9 +56,10 @@ function main(): void {
     // Stop accepting connections, let in-flight requests finish, then exit.
     server.close((error) => {
       if (error) logger.error({ err: error }, 'error while closing server');
-      database
-        .close()
-        .catch((closeError: unknown) => logger.error({ err: closeError }, 'error closing database'))
+      Promise.all([database.close(), redis.close()])
+        .catch((closeError: unknown) =>
+          logger.error({ err: closeError }, 'error closing connections'),
+        )
         .finally(() => process.exit(error ? 1 : 0));
     });
     setTimeout(() => {

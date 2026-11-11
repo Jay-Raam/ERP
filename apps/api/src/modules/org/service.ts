@@ -3,6 +3,7 @@ import { DEFAULT_ROLES, OWNER_ROLE_KEY, registerOrganisationInputSchema } from '
 import { ConflictError } from '../../core/errors';
 import type { Logger } from '../../core/logger';
 import { hashPassword } from '../../core/password';
+import { enforceLimit, type Limits, type RateLimiter } from '../../core/rate-limit';
 import type { Database } from '../../db/client';
 import { isUniqueViolation } from '../../db/errors';
 import { withTenant } from '../../db/tenant';
@@ -13,15 +14,30 @@ export interface RegisteredOrganisation {
   owner: { id: string; email: string; fullName: string };
 }
 
-export function createOrgService({ db, logger }: { db: Database; logger: Logger }) {
+interface OrgServiceDeps {
+  db: Database;
+  logger: Logger;
+  limiter: RateLimiter;
+  limits: Limits;
+}
+
+export function createOrgService({ db, logger, limiter, limits }: OrgServiceDeps) {
   return {
     /**
      * Creates an organisation with its seed roles, a head-office branch and
      * its first user, who becomes Owner. All of it commits together or not at all.
      */
-    async register(rawInput: unknown): Promise<RegisteredOrganisation> {
+    async register(rawInput: unknown, meta: { ip: string }): Promise<RegisteredOrganisation> {
       // Throws ZodError, which the central handler turns into VALIDATION_ERROR.
       const input = registerOrganisationInputSchema.parse(rawInput);
+
+      // Counted only for well-formed requests, before the expensive hash.
+      await enforceLimit(
+        limiter,
+        `register:ip:${meta.ip}`,
+        limits.registerPerIp,
+        'Too many organisations created from this network.',
+      );
 
       // Hash before opening the transaction: it is slow on purpose and must
       // not hold a database connection while it runs.

@@ -2,10 +2,20 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 
 /**
  * Per-request state that follows the async call chain.
- * Tenant, user and permission context are added here when auth lands.
  */
+export interface AuthContext {
+  userId: string;
+  tenantId: string;
+  /** The refresh-token family this access token belongs to. */
+  sessionId: string;
+}
+
 export interface RequestContext {
   requestId: string;
+  ip: string;
+  userAgent: string | null;
+  /** Set by the authenticate middleware when the access token is valid. */
+  auth: AuthContext | null;
 }
 
 const storage = new AsyncLocalStorage<RequestContext>();

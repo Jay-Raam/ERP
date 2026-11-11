@@ -12,5 +12,13 @@ export const requestId: RequestHandler = (req, res, next) => {
   const inbound = req.get(REQUEST_ID_HEADER);
   const id = inbound && SAFE_ID.test(inbound) ? inbound : randomUUID();
   res.setHeader(REQUEST_ID_HEADER, id);
-  runWithContext({ requestId: id }, next);
+  runWithContext(
+    {
+      requestId: id,
+      ip: req.ip ?? 'unknown',
+      userAgent: req.get('user-agent')?.slice(0, 255) ?? null,
+      auth: null,
+    },
+    next,
+  );
 };

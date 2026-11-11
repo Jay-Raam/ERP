@@ -53,6 +53,28 @@ export function normalizeError(error: unknown): NormalizedError {
     };
   }
 
+  // Errors raised by the JSON body parser (malformed or oversized body).
+  const http = error as { status?: unknown; expose?: unknown; type?: unknown } | null;
+  if (
+    http &&
+    typeof http === 'object' &&
+    http.expose === true &&
+    typeof http.type === 'string' &&
+    typeof http.status === 'number' &&
+    http.status >= 400 &&
+    http.status < 500
+  ) {
+    return {
+      status: http.status,
+      expected: true,
+      body: {
+        code: ErrorCode.BAD_REQUEST,
+        message: http.status === 413 ? 'Request is too large' : 'Request body is not valid JSON',
+        requestId,
+      },
+    };
+  }
+
   return {
     status: 500,
     expected: false,

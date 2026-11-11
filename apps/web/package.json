@@ -13,15 +13,22 @@
   },
   "dependencies": {
     "@erp/shared": "workspace:*",
+    "@hookform/resolvers": "^7.0.5",
+    "@radix-ui/react-label": "^2.1.17",
     "@radix-ui/react-slot": "^1.5.0",
+    "@tanstack/react-query": "^5.107.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "geist": "^1.9.2",
+    "lucide-react": "^1.71.0",
     "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
     "server-only": "^0.0.1",
-    "tailwind-merge": "^3.7.0"
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@erp/config": "workspace:*",

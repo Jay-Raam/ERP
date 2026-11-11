@@ -39,8 +39,8 @@ export const orgTypeDefs = /* GraphQL */ `
 export function orgResolvers(service: OrgService) {
   return {
     Mutation: {
-      registerOrganisation: (_parent: unknown, args: { input: unknown }, _ctx: GraphQLContext) =>
-        service.register(args.input),
+      registerOrganisation: (_parent: unknown, args: { input: unknown }, ctx: GraphQLContext) =>
+        service.register(args.input, { ip: ctx.ip }),
     },
   };
 }

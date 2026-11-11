@@ -6,7 +6,8 @@ import { createApp } from '../src/app';
 import { loadEnv } from '../src/config/env';
 import { BusinessRuleError, ForbiddenError } from '../src/core/errors';
 import { createLogger } from '../src/core/logger';
-import { database, testApp } from './helpers';
+import { createMemoryRateLimiter } from '../src/core/rate-limit';
+import { CLIENT, database, testApp } from './helpers';
 
 afterAll(() => database.close());
 
@@ -40,7 +41,7 @@ const failingSchema = createSchema({
 });
 
 const gql = (app: ReturnType<typeof testApp>, query: string) =>
-  request(app).post('/graphql').send({ query });
+  request(app).post('/graphql').set(CLIENT).send({ query });
 
 describe('health', () => {
   it('GET /health/live answers ok', async () => {
@@ -60,6 +61,7 @@ describe('health', () => {
       env,
       logger: createLogger(env),
       database,
+      limiter: createMemoryRateLimiter(),
       readinessChecks: [
         { name: 'postgres', check: async () => {} },
         {
@@ -73,8 +75,8 @@ describe('health', () => {
     const res = await request(app).get('/health/ready');
     expect(res.status).toBe(503);
     expect(res.body.checks).toEqual([
-      { name: 'postgres', ok: true },
-      { name: 'redis', ok: false },
+      { name: 'postgres', ok: true, critical: true },
+      { name: 'redis', ok: false, critical: true },
     ]);
   });
 
@@ -83,6 +85,28 @@ describe('health', () => {
     expect(res.status).toBe(200);
     expect(res.body.errors).toBeUndefined();
     expect(res.body.data.health.status).toBe('ok');
+  });
+
+  it('stays ready when only a non-critical dependency is down', async () => {
+    const env = loadEnv({ NODE_ENV: 'test' });
+    const app = createApp({
+      env,
+      logger: createLogger(env),
+      database,
+      limiter: createMemoryRateLimiter(),
+      readinessChecks: [
+        {
+          name: 'redis',
+          critical: false,
+          check: async () => {
+            throw new Error('down');
+          },
+        },
+      ],
+    });
+    const res = await request(app).get('/health/ready');
+    expect(res.status).toBe(200);
+    expect(res.body.checks).toEqual([{ name: 'redis', ok: false, critical: false }]);
   });
 });
 

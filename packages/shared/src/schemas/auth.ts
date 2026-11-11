@@ -5,7 +5,8 @@ export const orgSlugSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .min(2, 'Organisation is required')
+  .min(1, 'Organisation ID is required')
+  .min(2, 'Organisation ID must be at least 2 characters')
   .max(63)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Use letters, numbers and hyphens only');
 

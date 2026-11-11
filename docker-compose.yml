@@ -52,6 +52,8 @@ services:
       DATABASE_URL: postgres://erp:erp_local_only@postgres:5432/erp
       MONGO_URL: mongodb://mongo:27017/erp
       REDIS_URL: redis://redis:6379
+      # Local stack only. Real deployments inject their own secret.
+      JWT_SECRET: local-stack-only-secret-not-for-real-use-000
     depends_on:
       postgres: { condition: service_healthy }
       mongo: { condition: service_healthy }
