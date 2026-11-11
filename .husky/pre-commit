@@ -1,0 +1,6 @@
+pnpm exec lint-staged
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --no-banner
+else
+  echo "warning: gitleaks is not installed; secret scan skipped (CI still runs it)"
+fi

@@ -25,6 +25,25 @@ export function createMaskError(logger: Logger) {
   return (error: unknown): GraphQLError => {
     const wrapped = isGraphQLError(error) ? error : undefined;
     const original = wrapped?.originalError ?? error;
+
+    // No underlying error (or another GraphQLError): GraphQL itself rejected the
+    // request, e.g. a variable of the wrong type or an unknown input field.
+    // Its message describes the client's mistake and is safe to return.
+    if (wrapped && (!wrapped.originalError || isGraphQLError(wrapped.originalError))) {
+      if (wrapped.extensions?.code && wrapped.extensions?.requestId) return wrapped;
+      return new (sameClass(wrapped))(wrapped.message, {
+        nodes: wrapped.nodes,
+        source: wrapped.source,
+        positions: wrapped.positions,
+        path: wrapped.path,
+        extensions: {
+          ...wrapped.extensions,
+          code: wrapped.extensions?.code ?? ErrorCode.BAD_REQUEST,
+          requestId: getRequestId(),
+        },
+      });
+    }
+
     const { body, expected } = normalizeError(original);
 
     if (expected) {

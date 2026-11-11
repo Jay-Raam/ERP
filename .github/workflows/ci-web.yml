@@ -1,0 +1,29 @@
+name: ci-web
+
+on:
+  push:
+    paths: ['apps/web/**', 'packages/**', 'pnpm-lock.yaml', '.github/workflows/ci-web.yml']
+  pull_request:
+    paths: ['apps/web/**', 'packages/**', 'pnpm-lock.yaml', '.github/workflows/ci-web.yml']
+
+concurrency:
+  group: ci-web-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @erp/web lint
+      - run: pnpm --filter @erp/web typecheck
+      - run: pnpm --filter @erp/web test
+      # Playwright E2E, screenshot and axe checks are added with the first real screens.

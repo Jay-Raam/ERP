@@ -1,6 +1,7 @@
 import { createApp } from './app';
 import { EnvError, loadEnv } from './config/env';
 import { createLogger } from './core/logger';
+import { createDatabase } from './db/client';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
@@ -15,7 +16,9 @@ function main(): void {
   }
 
   const logger = createLogger(env);
-  const app = createApp({ env, logger });
+  // Connects lazily: the API still boots if PostgreSQL is down, and /health/ready reports it.
+  const database = createDatabase(env.DATABASE_URL);
+  const app = createApp({ env, logger, database });
   const server = app.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: env.NODE_ENV }, 'api listening');
   });
@@ -28,7 +31,10 @@ function main(): void {
     // Stop accepting connections, let in-flight requests finish, then exit.
     server.close((error) => {
       if (error) logger.error({ err: error }, 'error while closing server');
-      process.exit(error ? 1 : 0);
+      database
+        .close()
+        .catch((closeError: unknown) => logger.error({ err: closeError }, 'error closing database'))
+        .finally(() => process.exit(error ? 1 : 0));
     });
     setTimeout(() => {
       logger.error('shutdown timed out; forcing exit');

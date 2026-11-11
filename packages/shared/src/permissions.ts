@@ -28,6 +28,17 @@ export function isPermissionKey(value: string): value is PermissionKey {
   return KEY_PATTERN.test(value) && (MODULES as readonly string[]).includes(value.split('.')[0]!);
 }
 
+const GRANT_PATTERN =
+  /^(?:\*|(?:[a-z][a-z0-9-]*|\*)\.(?:[a-z][a-z0-9-]*|\*)\.(?:[a-z][a-z0-9-]*|\*))$/;
+
+/** A key that may be stored on a role: an exact key, or one with `*` segments. */
+export function isPermissionGrant(value: string): boolean {
+  if (!GRANT_PATTERN.test(value)) return false;
+  if (value === WILDCARD) return true;
+  const module = value.split('.')[0]!;
+  return module === WILDCARD || (MODULES as readonly string[]).includes(module);
+}
+
 function matches(granted: string, required: string): boolean {
   if (granted === WILDCARD) return true;
   const g = granted.split('.');

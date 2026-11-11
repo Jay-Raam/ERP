@@ -16,7 +16,9 @@
     "infra:up": "docker compose up -d postgres mongo redis",
     "infra:down": "docker compose down",
     "stack:up": "docker compose --profile stack up -d --build",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:migrate": "pnpm --filter @erp/api db:migrate",
+    "db:generate": "pnpm --filter @erp/api db:generate"
   },
   "lint-staged": {
     "*.{ts,tsx,js,mjs,cjs}": [
