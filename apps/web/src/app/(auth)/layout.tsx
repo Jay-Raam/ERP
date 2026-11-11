@@ -10,7 +10,7 @@ const POINTS = [
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden overflow-hidden bg-sidebar p-12 text-sidebar-foreground lg:flex lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-brand p-12 text-brand-foreground lg:flex lg:flex-col lg:justify-between">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-32 -right-32 size-[28rem] rounded-full bg-primary/30 blur-3xl"
@@ -30,14 +30,14 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             <h2 className="text-4xl leading-tight font-semibold tracking-tight text-balance text-white">
               Run every branch from one calm workspace.
             </h2>
-            <p className="text-sidebar-muted">
+            <p className="text-brand-muted">
               Staff, stock, sales, purchases, accounts and payroll for growing businesses.
             </p>
           </div>
           <ul className="space-y-4">
             {POINTS.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-start gap-3 text-sm">
-                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md bg-sidebar-accent text-primary">
+                <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-md bg-brand-accent text-primary">
                   <Icon className="size-3.5" aria-hidden />
                 </span>
                 {text}
@@ -45,7 +45,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             ))}
           </ul>
         </div>
-        <p className="relative flex items-center gap-2 text-xs text-sidebar-muted">
+        <p className="relative flex items-center gap-2 text-xs text-brand-muted">
           <BadgeCheck className="size-4" aria-hidden /> Multi-tenant by design
         </p>
       </aside>

@@ -51,8 +51,8 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
         base,
         'relative outline-none focus-visible:ring-2 focus-visible:ring-ring',
         active
-          ? 'bg-sidebar-accent text-white'
-          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-white',
+          ? 'bg-sidebar-accent text-sidebar-active-foreground'
+          : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-active-foreground',
       )}
     >
       {active ? (
@@ -80,7 +80,9 @@ function SidebarContent({ pathname }: { pathname: string }) {
           {viewer.organisation.name.charAt(0).toUpperCase()}
         </span>
         <div className="min-w-0 leading-tight">
-          <p className="truncate text-sm font-semibold text-white">{viewer.organisation.name}</p>
+          <p className="truncate text-sm font-semibold text-sidebar-active-foreground">
+            {viewer.organisation.name}
+          </p>
           <p className="truncate text-xs text-sidebar-muted">{viewer.organisation.slug}</p>
         </div>
       </div>
@@ -163,7 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
-      <aside className="sticky top-0 hidden h-dvh bg-sidebar text-sidebar-foreground md:block">
+      <aside className="sticky top-0 hidden h-dvh border-r border-sidebar-border bg-sidebar text-sidebar-foreground md:block">
         <SidebarContent pathname={pathname} />
       </aside>
 

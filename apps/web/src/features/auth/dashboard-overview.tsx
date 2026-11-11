@@ -74,26 +74,26 @@ export function DashboardOverview() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
-      <section className="relative overflow-hidden rounded-2xl border bg-sidebar p-6 text-sidebar-foreground sm:p-8">
+      <section className="relative overflow-hidden rounded-2xl border bg-brand p-6 text-brand-foreground sm:p-8">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 -right-16 size-72 rounded-full bg-primary/30 blur-3xl"
         />
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div className="space-y-1.5">
-            <p className="text-sm text-sidebar-muted">{greeting()}</p>
+            <p className="text-sm text-brand-muted">{greeting()}</p>
             <h1 className="text-3xl font-semibold tracking-tight text-balance text-white">
               {firstName}, welcome back
             </h1>
-            <p className="text-sm text-sidebar-muted">
+            <p className="text-sm text-brand-muted">
               {viewer.organisation.name} · {viewer.user.email}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge className="border-sidebar-border bg-sidebar-accent text-white" variant="outline">
+            <Badge className="border-brand-border bg-brand-accent text-white" variant="outline">
               {viewer.role.name}
             </Badge>
-            <Badge className="border-sidebar-border bg-sidebar-accent text-white" variant="outline">
+            <Badge className="border-brand-border bg-brand-accent text-white" variant="outline">
               {SCOPE_LABEL[viewer.role.dataScope]}
             </Badge>
           </div>
