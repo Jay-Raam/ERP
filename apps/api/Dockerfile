@@ -14,7 +14,8 @@ RUN pnpm --filter @erp/api build
 FROM node:22-alpine
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /repo/apps/api/dist/server.cjs ./server.cjs
+COPY --from=build /repo/apps/api/dist/server.cjs /repo/apps/api/dist/migrate.cjs ./
+COPY --from=build /repo/apps/api/drizzle ./drizzle
 USER node
 EXPOSE 4000
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \

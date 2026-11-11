@@ -1,12 +1,14 @@
 import { createSchema } from 'graphql-yoga';
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
+import { afterAll, describe, expect, it } from 'vitest';
 import { createApp } from '../src/app';
 import { loadEnv } from '../src/config/env';
 import { BusinessRuleError, ForbiddenError } from '../src/core/errors';
 import { createLogger } from '../src/core/logger';
-import { testApp } from './helpers';
+import { database, testApp } from './helpers';
+
+afterAll(() => database.close());
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -57,6 +59,7 @@ describe('health', () => {
     const app = createApp({
       env,
       logger: createLogger(env),
+      database,
       readinessChecks: [
         { name: 'postgres', check: async () => {} },
         {

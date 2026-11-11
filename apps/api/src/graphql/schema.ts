@@ -1,37 +1,50 @@
 import { createSchema } from 'graphql-yoga';
 import type { Env } from '../config/env';
+import type { Logger } from '../core/logger';
+import type { Database } from '../db/client';
+import { orgResolvers, orgTypeDefs } from '../modules/org/schema';
+import { createOrgService } from '../modules/org/service';
+import type { GraphQLContext } from './context';
 
-export interface GraphQLContext {
-  requestId: string;
+export type { GraphQLContext };
+
+export interface SchemaDeps {
+  env: Pick<Env, 'INSTANCE_ID'>;
+  db: Database;
+  logger: Logger;
 }
 
-/**
- * Root schema. Each business module adds its own typeDefs and resolvers
- * from src/modules/<name>/ and is merged in here.
- */
-export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>) {
-  return createSchema<GraphQLContext>({
-    typeDefs: /* GraphQL */ `
-      type Health {
-        status: String!
-        instance: String
-        uptimeSeconds: Float!
-        timestamp: String!
-      }
+const rootTypeDefs = /* GraphQL */ `
+  type Health {
+    status: String!
+    instance: String
+    uptimeSeconds: Float!
+    timestamp: String!
+  }
 
-      type Query {
-        health: Health!
-      }
-    `,
-    resolvers: {
-      Query: {
-        health: () => ({
-          status: 'ok',
-          instance: env.INSTANCE_ID ?? null,
-          uptimeSeconds: process.uptime(),
-          timestamp: new Date().toISOString(),
-        }),
+  type Query {
+    health: Health!
+  }
+`;
+
+/** Root schema: each business module contributes typeDefs and resolvers. */
+export function buildSchema({ env, db, logger }: SchemaDeps) {
+  const orgService = createOrgService({ db, logger });
+
+  return createSchema<GraphQLContext>({
+    typeDefs: [rootTypeDefs, orgTypeDefs],
+    resolvers: [
+      {
+        Query: {
+          health: () => ({
+            status: 'ok',
+            instance: env.INSTANCE_ID ?? null,
+            uptimeSeconds: process.uptime(),
+            timestamp: new Date().toISOString(),
+          }),
+        },
       },
-    },
+      orgResolvers(orgService),
+    ],
   });
 }

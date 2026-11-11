@@ -1,0 +1,37 @@
+name: Feature
+description: One unit of work that ends in one pull request
+title: 'feat(<module>): '
+labels: ['type:feature']
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: User story
+      placeholder: As a <role>, I want <action>, so that <outcome>.
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+        - [ ] Server recomputes every total; client values are not trusted
+        - [ ] Permission, branch scope and tenant checked in the service
+        - [ ] Tests: happy path, unauthenticated, forbidden, invalid input, cross-tenant
+    validations: { required: true }
+  - type: textarea
+    id: api
+    attributes:
+      label: API notes
+      description: Queries, mutations, inputs, error codes
+  - type: textarea
+    id: ui
+    attributes:
+      label: UI notes
+      description: Screens, states (loading, empty, error), permissions that hide actions
+  - type: dropdown
+    id: size
+    attributes:
+      label: Size
+      options: ['XS (under 50 lines)', 'S (50 to 150)', 'M (150 to 400)', 'L (400 to 800)']
+    validations: { required: true }

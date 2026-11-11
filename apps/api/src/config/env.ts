@@ -33,6 +33,8 @@ const schema = z.object({
     )
     .pipe(z.array(url(['http:', 'https:'])).min(1)),
   DATABASE_URL: url(['postgres:', 'postgresql:']).optional(),
+  /** Owner-level login used only by `pnpm db:migrate`. Falls back to DATABASE_URL. */
+  MIGRATION_DATABASE_URL: url(['postgres:', 'postgresql:']).optional(),
   MONGO_URL: url(['mongodb:', 'mongodb+srv:']).optional(),
   REDIS_URL: url(['redis:', 'rediss:']).optional(),
   INSTANCE_ID: z.string().max(64).optional(),

@@ -15,6 +15,7 @@ corepack enable
 pnpm install
 cp .env.example .env      # PowerShell: Copy-Item .env.example .env
 pnpm infra:up             # postgres, mongo, redis
+pnpm db:migrate           # create or update the tables
 pnpm dev                  # web on :3000, api on :4000
 ```
 
@@ -42,6 +43,20 @@ apps/web          Next.js app (App Router, Tailwind, shadcn/ui)
 packages/shared   error codes, permission helpers, zod schemas used by both apps
 packages/config   shared ESLint and TypeScript presets
 ```
+
+## Database and tenants
+
+Every table has row-level security. Application code reaches PostgreSQL only through `withTenant(db, tenantId, fn)`, which opens a transaction, switches to the restricted `erp_app` role and pins the tenant, so a query can only see or change that tenant's rows.
+
+- A new table needs `SELECT app_enable_tenant_rls('<table>');` in its migration. A test fails if one is missed.
+- Tests use `TEST_DATABASE_URL` (default: local `erp_test`) and wipe that database on every run. They refuse to run against a database whose name does not end in `_test`, and they never read `DATABASE_URL`.
+- For production, give the API its own login that is only a member of `erp_app`, and keep the owner login for migrations:
+
+  ```sql
+  CREATE ROLE erp_api LOGIN PASSWORD '<generate one>' NOSUPERUSER NOBYPASSRLS IN ROLE erp_app;
+  ```
+
+  Then set `DATABASE_URL` to the `erp_api` login and `MIGRATION_DATABASE_URL` to the owner login.
 
 ## Rules that do not bend
 
