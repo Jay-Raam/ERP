@@ -4,14 +4,23 @@ import { createBranchInputSchema, updateBranchInputSchema } from '@erp/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
+import { Badge } from '@/components/ui/badge';
 import { Modal } from '@/components/ui/modal';
 import { NoAccess, PageHeader, StatusBadge } from '@/components/ui/page-header';
 import { SelectField } from '@/components/ui/select-field';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { handleApiError } from '@/lib/handle-api-error';
 import { Can, usePermission } from '@/features/auth/viewer';
 import { useBranches, useSaveBranch, type Branch } from './api';
@@ -44,30 +53,32 @@ export function BranchesPage() {
       />
       <QueryState query={query} isEmpty={(d) => d.length === 0} emptyText="No branches yet.">
         {(branches) => (
-          <div className="overflow-x-auto rounded-lg border bg-card">
-            <table className="w-full text-sm">
-              <thead className="border-b bg-muted/50 text-left text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-2 font-medium">Code</th>
-                  <th className="px-4 py-2 font-medium">Name</th>
-                  <th className="px-4 py-2 font-medium">Status</th>
-                  <th className="px-4 py-2" />
-                </tr>
-              </thead>
-              <tbody>
+          <div className="rounded-lg border bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-4">Code</TableHead>
+                  <TableHead className="px-4">Name</TableHead>
+                  <TableHead className="px-4">Status</TableHead>
+                  <TableHead className="px-4" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {branches.map((b) => (
-                  <tr key={b.id} className="border-b last:border-0">
-                    <td className="px-4 py-3 font-mono">{b.code}</td>
-                    <td className="px-4 py-3">
+                  <TableRow key={b.id}>
+                    <TableCell className="px-4 py-3 font-mono">{b.code}</TableCell>
+                    <TableCell className="px-4 py-3">
                       {b.name}
                       {b.isHeadOffice ? (
-                        <span className="ml-2 text-xs text-muted-foreground">Head office</span>
+                        <Badge variant="outline" className="ml-2">
+                          Head office
+                        </Badge>
                       ) : null}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <StatusBadge status={b.status} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-right">
                       <Can permission="branch.branch.update">
                         <Button
                           size="sm"
@@ -78,11 +89,11 @@ export function BranchesPage() {
                           Edit
                         </Button>
                       </Can>
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </QueryState>
@@ -141,6 +152,7 @@ function EditForm({ branch, onDone }: { branch: Branch; onDone: () => void }) {
   const save = useSaveBranch();
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -163,15 +175,23 @@ function EditForm({ branch, onDone }: { branch: Branch; onDone: () => void }) {
         Code <span className="font-mono text-foreground">{branch.code}</span>
       </p>
       <Field label="Name" error={errors.name?.message} {...register('name')} />
-      <SelectField
-        label="Status"
-        disabled={branch.isHeadOffice}
-        error={errors.status?.message}
-        {...register('status')}
-      >
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-      </SelectField>
+      <Controller
+        control={control}
+        name="status"
+        render={({ field }) => (
+          <SelectField
+            label="Status"
+            disabled={branch.isHeadOffice}
+            error={errors.status?.message}
+            value={field.value}
+            onValueChange={field.onChange}
+            options={[
+              { value: 'active', label: 'Active' },
+              { value: 'inactive', label: 'Inactive' },
+            ]}
+          />
+        )}
+      />
       <FormActions pending={save.isPending} onCancel={onDone} submit="Save changes" />
     </form>
   );

@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
 export function PageHeader({
   title,
@@ -22,25 +24,19 @@ export function PageHeader({
 
 export function StatusBadge({ status }: { status: 'active' | 'inactive' }) {
   return (
-    <span
-      className={
-        status === 'active'
-          ? 'rounded-full bg-success/15 px-2 py-0.5 text-xs font-medium text-success'
-          : 'rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground'
-      }
-    >
+    <Badge variant={status === 'active' ? 'success' : 'secondary'}>
       {status === 'active' ? 'Active' : 'Inactive'}
-    </span>
+    </Badge>
   );
 }
 
 export function NoAccess() {
   return (
-    <div role="alert" className="mx-auto max-w-md rounded-lg border border-dashed p-8 text-center">
-      <h1 className="text-lg font-semibold">No access</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
+    <Alert className="mx-auto max-w-md">
+      <AlertTitle>No access</AlertTitle>
+      <AlertDescription>
         Your role does not include this page. Ask an administrator if you need it.
-      </p>
-    </div>
+      </AlertDescription>
+    </Alert>
   );
 }

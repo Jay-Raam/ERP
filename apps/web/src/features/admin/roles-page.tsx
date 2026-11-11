@@ -4,11 +4,23 @@ import { createRoleInputSchema, grantCovered } from '@erp/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Lock, Plus, X } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Modal } from '@/components/ui/modal';
 import { NoAccess, PageHeader } from '@/components/ui/page-header';
 import { SelectField } from '@/components/ui/select-field';
@@ -119,38 +131,43 @@ export function RolesPage() {
 function DeleteDialog({ role, onClose }: { role: Role | null; onClose: () => void }) {
   const remove = useDeleteRole();
   return (
-    <Modal open={role !== null} onClose={onClose} title="Delete role">
-      {role ? (
-        <div className="space-y-4">
-          <p className="text-sm">
-            Delete <strong>{role.name}</strong>? This cannot be undone.
-            {role.userCount > 0
-              ? ` ${role.userCount} user${role.userCount === 1 ? ' is' : 's are'} still on it, so it cannot be deleted yet.`
-              : ''}
-          </p>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={remove.isPending}
-              onClick={async () => {
-                try {
-                  await remove.mutateAsync(role.id);
-                  toast.success('Role deleted');
-                  onClose();
-                } catch (error) {
-                  handleApiError(error);
-                }
-              }}
-            >
-              Delete role
-            </Button>
-          </div>
-        </div>
-      ) : null}
-    </Modal>
+    <AlertDialog open={role !== null} onOpenChange={(open) => (open ? undefined : onClose())}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete role</AlertDialogTitle>
+          <AlertDialogDescription>
+            {role ? (
+              <>
+                Delete <strong>{role.name}</strong>? This cannot be undone.
+                {role.userCount > 0
+                  ? ` ${role.userCount} user${role.userCount === 1 ? ' is' : 's are'} still on it, so it cannot be deleted yet.`
+                  : ''}
+              </>
+            ) : null}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className={buttonVariants({ variant: 'destructive' })}
+            disabled={remove.isPending}
+            onClick={async (event) => {
+              event.preventDefault();
+              if (!role) return;
+              try {
+                await remove.mutateAsync(role.id);
+                toast.success('Role deleted');
+                onClose();
+              } catch (error) {
+                handleApiError(error);
+              }
+            }}
+          >
+            Delete role
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -165,6 +182,7 @@ function RoleForm({ role, onDone }: { role: Role | null; onDone: () => void }) {
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors },
@@ -198,13 +216,19 @@ function RoleForm({ role, onDone }: { role: Role | null; onDone: () => void }) {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <Field label="Role name" error={errors.name?.message} {...register('name')} />
-      <SelectField label="Data access" error={errors.dataScope?.message} {...register('dataScope')}>
-        {Object.entries(SCOPE).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </SelectField>
+      <Controller
+        control={control}
+        name="dataScope"
+        render={({ field }) => (
+          <SelectField
+            label="Data access"
+            error={errors.dataScope?.message}
+            value={field.value}
+            onValueChange={field.onChange}
+            options={Object.entries(SCOPE).map(([value, label]) => ({ value, label }))}
+          />
+        )}
+      />
 
       <div className="space-y-3">
         {groupCatalogue().map((group) => (
@@ -218,12 +242,12 @@ function RoleForm({ role, onDone }: { role: Role | null; onDone: () => void }) {
                     key={item.key}
                     className={`flex items-center gap-2 text-sm ${canGrant ? '' : 'opacity-50'}`}
                   >
-                    <input
-                      type="checkbox"
-                      className="size-4 accent-primary"
+                    <Checkbox
                       checked={checked.includes(item.key)}
                       disabled={!canGrant}
-                      onChange={(e) => setChecked(toggleKey(checked, item.key, e.target.checked))}
+                      onCheckedChange={(on) =>
+                        setChecked(toggleKey(checked, item.key, on === true))
+                      }
                     />
                     {item.label}
                   </label>
@@ -239,18 +263,17 @@ function RoleForm({ role, onDone }: { role: Role | null; onDone: () => void }) {
         {extra.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {extra.map((grant) => (
-              <li
-                key={grant}
-                className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-mono text-xs"
-              >
-                {grant}
-                <button
-                  type="button"
-                  aria-label={`Remove ${grant}`}
-                  onClick={() => setExtra(extra.filter((g) => g !== grant))}
-                >
-                  <X className="size-3" aria-hidden />
-                </button>
+              <li key={grant}>
+                <Badge variant="secondary" className="gap-1 font-mono">
+                  {grant}
+                  <button
+                    type="button"
+                    aria-label={`Remove ${grant}`}
+                    onClick={() => setExtra(extra.filter((g) => g !== grant))}
+                  >
+                    <X className="size-3" aria-hidden />
+                  </button>
+                </Badge>
               </li>
             ))}
           </ul>

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -13,6 +14,10 @@
   --foreground: oklch(0.2 0.02 255);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.2 0.02 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 255);
+  --accent: oklch(0.955 0.008 250);
+  --accent-foreground: oklch(0.25 0.02 255);
   --muted: oklch(0.965 0.005 250);
   --muted-foreground: oklch(0.5 0.02 255);
   --primary: oklch(0.45 0.16 262);
@@ -31,6 +36,10 @@
   --foreground: oklch(0.96 0.005 250);
   --card: oklch(0.21 0.017 255);
   --card-foreground: oklch(0.96 0.005 250);
+  --popover: oklch(0.21 0.017 255);
+  --popover-foreground: oklch(0.96 0.005 250);
+  --accent: oklch(0.26 0.017 255);
+  --accent-foreground: oklch(0.96 0.005 250);
   --muted: oklch(0.26 0.017 255);
   --muted-foreground: oklch(0.7 0.02 255);
   --primary: oklch(0.7 0.14 262);
@@ -51,6 +60,10 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);

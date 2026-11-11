@@ -1,31 +1,65 @@
-import { useId, type ComponentProps } from 'react';
-import { Label } from './label';
+'use client';
 
-interface SelectFieldProps extends ComponentProps<'select'> {
+import { useId } from 'react';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
+
+export interface SelectOption {
+  value: string;
   label: string;
-  error?: string;
+  disabled?: boolean;
 }
 
-export function SelectField({ label, error, id, className, children, ...props }: SelectFieldProps) {
-  const generated = useId();
-  const selectId = id ?? generated;
+interface SelectFieldProps {
+  label: string;
+  value: string;
+  onValueChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder?: string;
+  error?: string;
+  disabled?: boolean;
+}
+
+/** Label + shadcn Select + error, wired together for screen readers. */
+export function SelectField({
+  label,
+  value,
+  onValueChange,
+  options,
+  placeholder = 'Select…',
+  error,
+  disabled,
+}: SelectFieldProps) {
+  const id = useId();
   return (
     <div className="space-y-1.5">
-      <Label htmlFor={selectId}>{label}</Label>
-      <select
-        id={selectId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${selectId}-error` : undefined}
-        className={
-          'h-10 w-full rounded-md border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30 aria-invalid:border-destructive ' +
-          (className ?? '')
-        }
-        {...props}
-      >
-        {children}
-      </select>
+      <Label htmlFor={id}>{label}</Label>
+      <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+        <SelectTrigger
+          id={id}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `${id}-error` : undefined}
+          className={cn('w-full', error && 'border-destructive')}
+        >
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((o) => (
+            <SelectItem key={o.value} value={o.value} disabled={o.disabled}>
+              {o.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
       {error ? (
-        <p id={`${selectId}-error`} role="alert" className="text-sm text-destructive">
+        <p id={`${id}-error`} role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
