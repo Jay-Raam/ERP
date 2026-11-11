@@ -53,8 +53,10 @@ export type Env = Omit<
   'DATABASE_URL' | 'MONGO_URL' | 'REDIS_URL' | 'JWT_SECRET'
 > & {
   DATABASE_URL: string;
-  MONGO_URL: string;
-  REDIS_URL: string;
+  /** Not used yet. Optional in production until the audit log lands. */
+  MONGO_URL: string | undefined;
+  /** Optional in production: without it rate limits are kept in memory, per instance. */
+  REDIS_URL: string | undefined;
   JWT_SECRET: string;
 };
 
@@ -66,8 +68,8 @@ export class EnvError extends Error {
 }
 
 /**
- * Validates the environment once at boot. In production every connection
- * string and secret must be set explicitly; local defaults are never used there.
+ * Validates the environment once at boot. In production the database URL and
+ * the JWT secret must be set explicitly; local defaults are never used there.
  */
 export function loadEnv(source: Record<string, string | undefined>): Env {
   // Treat empty strings as unset so `FOO=` in a .env file falls back to the default.
@@ -78,7 +80,8 @@ export function loadEnv(source: Record<string, string | undefined>): Env {
   }
 
   const env = parsed.data;
-  const required = ['DATABASE_URL', 'MONGO_URL', 'REDIS_URL', 'JWT_SECRET'] as const;
+  const isProduction = env.NODE_ENV === 'production';
+  const required = ['DATABASE_URL', 'JWT_SECRET'] as const;
   if (env.NODE_ENV === 'production') {
     const missing = required.filter((key) => !env[key]);
     if (missing.length > 0) {
@@ -89,8 +92,8 @@ export function loadEnv(source: Record<string, string | undefined>): Env {
   return {
     ...env,
     DATABASE_URL: env.DATABASE_URL ?? DEV_DEFAULTS.DATABASE_URL,
-    MONGO_URL: env.MONGO_URL ?? DEV_DEFAULTS.MONGO_URL,
-    REDIS_URL: env.REDIS_URL ?? DEV_DEFAULTS.REDIS_URL,
+    MONGO_URL: env.MONGO_URL ?? (isProduction ? undefined : DEV_DEFAULTS.MONGO_URL),
+    REDIS_URL: env.REDIS_URL ?? (isProduction ? undefined : DEV_DEFAULTS.REDIS_URL),
     JWT_SECRET: env.JWT_SECRET ?? DEV_DEFAULTS.JWT_SECRET,
   };
 }

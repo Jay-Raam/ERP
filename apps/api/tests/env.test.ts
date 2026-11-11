@@ -24,8 +24,18 @@ describe('loadEnv', () => {
     try {
       loadEnv({ NODE_ENV: 'production' });
     } catch (error) {
-      expect((error as EnvError).problems).toHaveLength(4);
+      expect((error as EnvError).problems).toHaveLength(2);
     }
+  });
+
+  it('boots in production with only the database URL and JWT secret, without Redis or Mongo', () => {
+    const env = loadEnv({
+      NODE_ENV: 'production',
+      DATABASE_URL: 'postgres://u:p@db:5432/erp',
+      JWT_SECRET: 'x'.repeat(40),
+    });
+    expect(env.REDIS_URL).toBeUndefined();
+    expect(env.MONGO_URL).toBeUndefined();
   });
 
   it.each([

@@ -31,12 +31,17 @@ async function main(): Promise<void> {
   }
   // Connects lazily: the API still boots if PostgreSQL is down, and /health/ready reports it.
   const database = createDatabase(env.DATABASE_URL);
-  const redis = createRedis(env.REDIS_URL, logger);
-  const limiter = createResilientRateLimiter(
-    createRedisRateLimiter(redis.client),
-    createMemoryRateLimiter(),
-    logger,
-  );
+  // Redis is optional: without it, rate limits live in memory (correct for one instance only).
+  const redis = env.REDIS_URL ? createRedis(env.REDIS_URL, logger) : null;
+  if (!redis)
+    logger.warn('REDIS_URL is not set; rate limits are per instance and reset on restart');
+  const limiter = redis
+    ? createResilientRateLimiter(
+        createRedisRateLimiter(redis.client),
+        createMemoryRateLimiter(),
+        logger,
+      )
+    : createMemoryRateLimiter();
   const app = createApp({
     env,
     logger,
@@ -45,7 +50,7 @@ async function main(): Promise<void> {
     readinessChecks: [
       { name: 'postgres', check: database.ping },
       // Rate limiting falls back to memory, so Redis being down does not stop the API.
-      { name: 'redis', check: redis.ping, critical: false },
+      ...(redis ? [{ name: 'redis', check: redis.ping, critical: false }] : []),
     ],
   });
   if (env.NODE_ENV !== 'production' && !process.env.JWT_SECRET) {
@@ -63,7 +68,7 @@ async function main(): Promise<void> {
     // Stop accepting connections, let in-flight requests finish, then exit.
     server.close((error) => {
       if (error) logger.error({ err: error }, 'error while closing server');
-      Promise.all([database.close(), redis.close()])
+      Promise.all([database.close(), redis?.close()])
         .catch((closeError: unknown) =>
           logger.error({ err: closeError }, 'error closing connections'),
         )
