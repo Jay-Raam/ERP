@@ -42,6 +42,10 @@ const schema = z.object({
   /** Signs access tokens. At least 32 characters; required in production. */
   JWT_SECRET: z.string().min(32, 'Must be at least 32 characters').optional(),
   INSTANCE_ID: z.string().max(64).optional(),
+  /** "true" applies pending migrations before the API starts listening (use on Railway). */
+  RUN_MIGRATIONS: z.enum(['true', 'false']).optional(),
+  /** "true" adds the demo organisation at boot if it is missing. Its password is public: remove it for real use. */
+  SEED_DEMO: z.enum(['true', 'false']).optional(),
 });
 
 export type Env = Omit<

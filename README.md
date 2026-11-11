@@ -6,7 +6,8 @@ Multi-tenant ERP: organisations, branches, employees, roles, accounts, attendanc
 
 - Node.js 22 or newer
 - pnpm 10 (`corepack enable` picks the pinned version)
-- Docker Desktop, for PostgreSQL, MongoDB and Redis
+- PostgreSQL 16+ and Redis. Either Docker (`pnpm infra:up`) or plain installs on your machine; both work.
+  MongoDB is not used yet.
 
 ## First run
 
@@ -19,6 +20,45 @@ pnpm db:migrate           # create or update the tables
 pnpm dev                  # web on :3000, api on :4000
 ```
 
+## Without Docker
+
+Install PostgreSQL (postgresql.org installer) and, if you want Redis-backed limits, any Redis. Without
+Redis the API falls back to in-memory limits, so it still runs. Then put this in `.env`:
+
+```
+DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/erp
+TEST_DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5432/erp_test
+```
+
+Create the database once (`CREATE DATABASE erp;` in pgAdmin or psql), then `pnpm db:migrate` and `pnpm dev`.
+
+## On Railway (private database URL)
+
+`postgres.railway.internal` only resolves inside Railway, so `pnpm db:migrate` cannot run from a laptop
+against it. Let the deployed API do it. On the API service set `DATABASE_URL` to the private URL and add
+
+```
+RUN_MIGRATIONS=true
+SEED_DEMO=true        # optional: demo accounts below; remove once you have real users
+```
+
+On every start the API applies pending migrations before it listens; if one fails, the deploy fails and
+the old version keeps running. Run the web app and API from the same Railway project and use the
+deployed URL to sign in.
+
+## Demo login
+
+`pnpm db:seed` creates a demo organisation (refuses to run when `NODE_ENV=production`). Sign in at
+http://localhost:3000/login with organisation `demo` and password `Demo@12345678`:
+
+| Email                | Role         |
+| -------------------- | ------------ |
+| `owner@demo.test`    | Owner        |
+| `admin@demo.test`    | Super Admin  |
+| `sales@demo.test`    | Sale team    |
+| `accounts@demo.test` | Account team |
+| `employee@demo.test` | Employee     |
+
 Open http://localhost:3000, create an organisation, then sign in. GraphiQL is at http://localhost:4000/graphql in development.
 
 ## Commands
@@ -29,6 +69,7 @@ Open http://localhost:3000, create an organisation, then sign in. GraphiQL is at
 | `pnpm lint` / `pnpm typecheck` / `pnpm test` | Checks every package                                    |
 | `pnpm build`                                 | Production build of both apps (cached by Turborepo)     |
 | `pnpm format`                                | Formats the repo with Prettier                          |
+| `pnpm db:migrate` / `pnpm db:seed`           | Creates the tables / adds the demo organisation         |
 | `pnpm infra:up` / `pnpm infra:down`          | Starts or stops the local databases                     |
 | `pnpm stack:up`                              | Two API instances behind Nginx on http://localhost:8080 |
 

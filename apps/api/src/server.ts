@@ -7,11 +7,12 @@ import {
   createResilientRateLimiter,
 } from './core/rate-limit';
 import { createRedis } from './core/redis';
+import { prepareDatabase } from './db/boot';
 import { createDatabase } from './db/client';
 
 const SHUTDOWN_TIMEOUT_MS = 10_000;
 
-function main(): void {
+async function main(): Promise<void> {
   let env;
   try {
     env = loadEnv(process.env);
@@ -22,6 +23,12 @@ function main(): void {
   }
 
   const logger = createLogger(env);
+  try {
+    await prepareDatabase(env, logger);
+  } catch (error) {
+    logger.error({ err: error }, 'database preparation failed; not starting');
+    process.exit(1);
+  }
   // Connects lazily: the API still boots if PostgreSQL is down, and /health/ready reports it.
   const database = createDatabase(env.DATABASE_URL);
   const redis = createRedis(env.REDIS_URL, logger);
@@ -79,4 +86,7 @@ function main(): void {
   });
 }
 
-main();
+main().catch((error: unknown) => {
+  process.stderr.write(`fatal: ${String(error)}\n`);
+  process.exit(1);
+});

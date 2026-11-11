@@ -18,6 +18,7 @@
     "stack:up": "docker compose --profile stack up -d --build",
     "prepare": "husky",
     "db:migrate": "pnpm --filter @erp/api db:migrate",
+    "db:seed": "pnpm --filter @erp/api db:seed",
     "db:generate": "pnpm --filter @erp/api db:generate"
   },
   "lint-staged": {

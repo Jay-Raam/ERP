@@ -1,0 +1,88 @@
+import { randomUUID } from 'node:crypto';
+import { DEFAULT_ROLES, OWNER_ROLE_KEY } from '@erp/shared';
+import { hashPassword } from '../core/password';
+import * as orgRepo from '../modules/org/repository';
+import * as adminRepo from '../modules/admin/repository';
+import { createDatabase } from './client';
+import { findTenantBySlug, withTenant } from './tenant';
+
+/** Local demo data. Every account shares one well-known password, so never run this in production. */
+export const DEMO_ORG = 'demo';
+export const DEMO_PASSWORD = 'Demo@12345678';
+
+export const DEMO_USERS = [
+  { email: 'owner@demo.test', fullName: 'Priya Raman', role: 'owner', branches: ['HO', 'CHN-1'] },
+  { email: 'admin@demo.test', fullName: 'Arjun Kumar', role: 'super_admin', branches: ['HO'] },
+  { email: 'sales@demo.test', fullName: 'Divya Menon', role: 'sale_team', branches: ['CHN-1'] },
+  { email: 'accounts@demo.test', fullName: 'Karthik S', role: 'account_team', branches: ['HO'] },
+  { email: 'employee@demo.test', fullName: 'Meena Iyer', role: 'employee', branches: ['CHN-1'] },
+] as const;
+
+export async function seedDemo(url: string): Promise<'created' | 'exists'> {
+  const handle = createDatabase(url, { max: 2 });
+  try {
+    if (await findTenantBySlug(handle.db, DEMO_ORG)) return 'exists';
+
+    const passwordHash = await hashPassword(DEMO_PASSWORD);
+    const tenantId = randomUUID();
+    await withTenant(handle.db, tenantId, async (tx) => {
+      await orgRepo.insertOrganisation(tx, { id: tenantId, slug: DEMO_ORG, name: 'Demo Traders' });
+      const roleIds = await orgRepo.insertRoles(tx, tenantId, DEFAULT_ROLES);
+      const ho = await orgRepo.insertBranch(tx, {
+        tenantId,
+        code: 'HO',
+        name: 'Head Office',
+        isHeadOffice: true,
+      });
+      const chn = await adminRepo.insertBranchRow(tx, {
+        tenantId,
+        code: 'CHN-1',
+        name: 'Chennai One',
+      });
+      const branchByCode: Record<string, string> = { HO: ho.id, 'CHN-1': chn };
+      for (const u of DEMO_USERS) {
+        const userId = await adminRepo.insertUserRow(tx, {
+          tenantId,
+          email: u.email,
+          passwordHash,
+          fullName: u.fullName,
+          roleId: roleIds.get(u.role === 'owner' ? OWNER_ROLE_KEY : u.role)!,
+        });
+        await adminRepo.replaceUserBranches(
+          tx,
+          tenantId,
+          userId,
+          u.branches.map((code) => branchByCode[code]!),
+        );
+      }
+    });
+    return 'created';
+  } finally {
+    await handle.close();
+  }
+}
+
+// CLI: pnpm db:seed
+if (process.argv[1] && /seed\.(ts|cjs|js)$/.test(process.argv[1])) {
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    process.stderr.write('Set DATABASE_URL\n');
+    process.exit(1);
+  }
+  if (process.env.NODE_ENV === 'production') {
+    process.stderr.write('Refusing to seed demo accounts when NODE_ENV=production\n');
+    process.exit(1);
+  }
+  seedDemo(url)
+    .then((result) => {
+      process.stdout.write(
+        result === 'exists'
+          ? `Demo organisation "${DEMO_ORG}" already exists. Nothing changed.\n`
+          : `Demo organisation "${DEMO_ORG}" created.\n`,
+      );
+    })
+    .catch((error: unknown) => {
+      process.stderr.write(`seed failed: ${(error as Error).message}\n`);
+      process.exit(1);
+    });
+}
