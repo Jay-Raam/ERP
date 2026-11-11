@@ -53,7 +53,7 @@ async function userWithRole(roleKey: string, branches: string[] = [headOffice]) 
 }
 
 beforeAll(async () => {
-  a = await registerOrg(app, { email: 'owner@a.example' });
+  a = await registerOrg(app);
   const s = await setup(a);
   owner = s.agent;
   roleIds = s.roleIds;
@@ -246,7 +246,7 @@ describe('privilege escalation', () => {
     expect(code(make)).toBe('FORBIDDEN');
 
     // Nor may they edit, deactivate or reset the password of an Owner.
-    const target = (await q(owner, USERS, { i: { search: 'owner@a.example' } })).body.data.users
+    const target = (await q(owner, USERS, { i: { search: a.input.email } })).body.data.users
       .items[0];
     const edit = await q(admin.agent, UPDATE_USER, {
       id: target.id,
@@ -326,7 +326,7 @@ describe('branches', () => {
     const user = await q(owner, CREATE_USER, {
       i: {
         fullName: 'Branch Test',
-        email: 'branch-test@acme.example',
+        email: `branch-${Math.random().toString(36).slice(2, 8)}@acme.example`,
         password: 'a long enough password',
         roleId: roleIds.employee,
         branchIds: [created.id],
@@ -347,16 +347,17 @@ describe('users', () => {
   });
 
   it('creates a user who can sign in with the role and branches given', async () => {
-    const input = { ...base(), email: '  Kavya.N@Acme.Example ' };
+    const tag = Math.random().toString(36).slice(2, 8);
+    const input = { ...base(), email: `  Kavya.N-${tag}@Acme.Example ` };
     const res = await q(owner, CREATE_USER, { i: input });
     expect(res.body.data.createUser).toMatchObject({
-      email: 'kavya.n@acme.example',
+      email: `kavya.n-${tag}@acme.example`,
       status: 'active',
       role: { key: 'employee' },
       branches: [{ code: 'HO' }],
     });
     const { agent } = await signIn(app, {
-      input: { ...a.input, email: 'kavya.n@acme.example', password: input.password },
+      input: { ...a.input, email: `kavya.n-${tag}@acme.example`, password: input.password },
     });
     const me = await q(agent, `{ me { role { key } branches { code } } }`);
     expect(me.body.data.me).toEqual({ role: { key: 'employee' }, branches: [{ code: 'HO' }] });
@@ -499,13 +500,12 @@ describe('users', () => {
     const login = await request(app)
       .post('/auth/login')
       .set(CLIENT)
-      .send({ organisation: a.input.organisation, email: victim.email, password: victim.password });
+      .send({ email: victim.email, password: victim.password });
     expect(login.status).toBe(401);
   });
 
   it('stops you changing your own role or deactivating yourself', async () => {
-    const me = (await q(owner, USERS, { i: { search: 'owner@a.example' } })).body.data.users
-      .items[0];
+    const me = (await q(owner, USERS, { i: { search: a.input.email } })).body.data.users.items[0];
     for (const change of [
       { status: 'inactive', roleId: me.role.id },
       { status: 'active', roleId: roleIds.employee },
@@ -527,10 +527,7 @@ describe('users', () => {
     expect(res.body.data.resetUserPassword).toBe(true);
     expect(code(await q(target.agent, ME_ID))).toBe('UNAUTHENTICATED');
     const login = (password: string) =>
-      request(app)
-        .post('/auth/login')
-        .set(CLIENT)
-        .send({ organisation: a.input.organisation, email: target.email, password });
+      request(app).post('/auth/login').set(CLIENT).send({ email: target.email, password });
     expect((await login(target.password)).status).toBe(401);
     expect((await login('brand new password')).status).toBe(200);
     expect(code(await q(owner, RESET, { id: target.id, p: 'short' }))).toBe('VALIDATION_ERROR');
@@ -539,9 +536,9 @@ describe('users', () => {
 
 describe('last Owner protection', () => {
   it('leaves at least one active Owner when two Owners remove each other at once', async () => {
-    const org = await registerOrg(app, { email: 'owner@race.example' });
+    const org = await registerOrg(app);
     const first = await setup(org);
-    const email = 'second@race.example';
+    const email = `second-${Math.random().toString(36).slice(2, 8)}@race.example`;
     const password = 'a long enough password';
     const made = await q(first.agent, CREATE_USER, {
       i: {
@@ -576,7 +573,7 @@ describe('last Owner protection', () => {
 
 describe('tenant isolation', () => {
   it("cannot see or touch another organisation's data", async () => {
-    const b = await registerOrg(app, { email: 'owner@b.example' });
+    const b = await registerOrg(app);
     const other = await setup(b);
 
     const mine = (await q(owner, USERS, { i: { limit: 100 } })).body.data.users.items as {
@@ -608,7 +605,7 @@ describe('tenant isolation', () => {
     const crossRole = await q(other.agent, CREATE_USER, {
       i: {
         fullName: 'Cross Tenant',
-        email: 'x@b.example',
+        email: `x-${Math.random().toString(36).slice(2, 8)}@b.example`,
         password: 'a long enough password',
         roleId: roleIds.employee,
         branchIds: [other.branchId],
@@ -618,7 +615,7 @@ describe('tenant isolation', () => {
     const crossBranch = await q(other.agent, CREATE_USER, {
       i: {
         fullName: 'Cross Tenant',
-        email: 'x@b.example',
+        email: `x-${Math.random().toString(36).slice(2, 8)}@b.example`,
         password: 'a long enough password',
         roleId: other.roleIds.employee,
         branchIds: [headOffice],

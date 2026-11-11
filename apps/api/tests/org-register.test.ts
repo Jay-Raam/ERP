@@ -16,6 +16,7 @@ import {
   registerInput,
   registerOrg,
   testApp,
+  uniqueEmail,
   uniqueSlug,
 } from './helpers';
 
@@ -34,8 +35,9 @@ const countOrgs = async (slug: string) =>
 
 describe('registerOrganisation: happy path', () => {
   it('creates the organisation, seed roles, head office and an Owner', async () => {
+    const tag = uniqueEmail('priya');
     const input = registerInput({
-      email: '  Priya@Acme.Example ',
+      email: `  ${tag.toUpperCase()} `,
       organisationName: ' Acme   Traders ',
     });
     const res = await gql(app, REGISTER, { input });
@@ -43,7 +45,7 @@ describe('registerOrganisation: happy path', () => {
     expect(res.body.errors).toBeUndefined();
     const { organisation, owner } = res.body.data.registerOrganisation;
     expect(organisation).toMatchObject({ slug: input.organisation, name: 'Acme Traders' });
-    expect(owner).toMatchObject({ email: 'priya@acme.example', fullName: 'Priya Raman' });
+    expect(owner).toMatchObject({ email: tag, fullName: 'Priya Raman' });
 
     const tenantId = organisation.id;
     const roleRows = await db.select().from(roles).where(eq(roles.tenantId, tenantId));
@@ -84,10 +86,16 @@ describe('registerOrganisation: happy path', () => {
     expect(JSON.stringify(res.body)).not.toMatch(/argon2|password/i);
   });
 
-  it('lets the same email own two different organisations', async () => {
-    const a = await registerOrg(app, { email: 'same@person.example' });
-    const b = await registerOrg(app, { email: 'same@person.example' });
-    expect(a.tenantId).not.toBe(b.tenantId);
+  it('refuses an email that already signs in to another organisation', async () => {
+    const sameEmail = uniqueEmail('same');
+    await registerOrg(app, { email: sameEmail });
+    const slug = uniqueSlug();
+    const res = await gql(app, REGISTER, {
+      input: registerInput({ organisation: slug, email: sameEmail }),
+    });
+    expect(res.body.errors?.[0]?.extensions?.code).toBe('CONFLICT');
+    expect(res.body.errors[0].extensions.fieldErrors.email).toBeDefined();
+    expect(await countOrgs(slug)).toBe(0);
   });
 });
 

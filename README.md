@@ -49,7 +49,7 @@ deployed URL to sign in.
 ## Demo login
 
 `pnpm db:seed` creates a demo organisation (refuses to run when `NODE_ENV=production`). Sign in at
-http://localhost:3000/login with organisation `demo` and password `Demo@12345678`:
+http://localhost:3000/login with one of these emails and password `Demo@12345678`:
 
 | Email                | Role         |
 | -------------------- | ------------ |
@@ -59,7 +59,7 @@ http://localhost:3000/login with organisation `demo` and password `Demo@12345678
 | `accounts@demo.test` | Account team |
 | `employee@demo.test` | Employee     |
 
-Open http://localhost:3000, create an organisation, then sign in. GraphiQL is at http://localhost:4000/graphql in development.
+Open http://localhost:3000/register to create an organisation, then sign in with the owner's email and password. GraphiQL is at http://localhost:4000/graphql in development.
 
 ## Commands
 
@@ -91,7 +91,7 @@ packages/config   shared ESLint and TypeScript presets
 - A session is three httpOnly cookies: a 15-minute access token, a 7-day refresh token (sent only to `/auth`), and a marker the web app's route guard reads. JavaScript cannot read any of them.
 - Each refresh token works once. If a spent one is presented again, the whole session is revoked.
 - Signing out, deactivating a user or deactivating an organisation takes effect on the next request.
-- Five failed sign-ins lock that organisation + email for 15 minutes. Counters live in Redis; if Redis is down each API instance counts in memory.
+- Sign-in is by email and password only: an email belongs to exactly one organisation, so the API finds the organisation from it. Five failed sign-ins lock that email for 15 minutes. Counters live in Redis; if Redis is down each API instance counts in memory.
 - Every write must carry the `x-erp-client` header and, if the browser sends an `Origin`, it must be listed in `CORS_ORIGINS`.
 - Tests need PostgreSQL and Redis running (`pnpm infra:up`).
 

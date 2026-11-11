@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
 import type { Database, TenantTx } from './client';
-import { organisations } from './schema';
+import { organisations, users } from './schema';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -46,5 +46,23 @@ export async function findTenantBySlug(
       .where(eq(organisations.slug, slug))
       .limit(1);
     return row ?? null;
+  });
+}
+
+/**
+ * Resolves a sign-in email to the tenant that owns it, before any tenant
+ * context exists. Emails are unique across organisations, and the email_lookup
+ * policy exposes exactly the one matching user row to this transaction.
+ */
+export async function findTenantByEmail(db: Database, email: string): Promise<string | null> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`SET LOCAL ROLE erp_app`);
+    await tx.execute(sql`SELECT set_config('app.lookup_email', ${email}, true)`);
+    const [row] = await tx
+      .select({ tenantId: users.tenantId })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1);
+    return row?.tenantId ?? null;
   });
 }

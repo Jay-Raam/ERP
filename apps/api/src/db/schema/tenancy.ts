@@ -100,7 +100,7 @@ export const users = pgTable(
   {
     id: id(),
     tenantId: tenantId(),
-    /** Always stored lower-case; unique within one organisation. */
+    /** Always stored lower-case; unique across all organisations, because sign-in is by email alone. */
     email: text('email').notNull(),
     passwordHash: text('password_hash').notNull(),
     fullName: text('full_name').notNull(),
@@ -112,6 +112,7 @@ export const users = pgTable(
   },
   (t) => [
     unique('users_tenant_email_unique').on(t.tenantId, t.email),
+    unique('users_email_unique').on(t.email),
     unique('users_tenant_id_unique').on(t.tenantId, t.id),
     check('users_email_lowercase', sql`${t.email} = lower(${t.email})`),
     foreignKey({

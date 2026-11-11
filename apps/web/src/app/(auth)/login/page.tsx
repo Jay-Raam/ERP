@@ -9,9 +9,7 @@ export default function LoginPage() {
     <>
       <header className="mb-8 space-y-1.5">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-        <p className="text-sm text-muted-foreground">
-          Use your organisation ID, email and password.
-        </p>
+        <p className="text-sm text-muted-foreground">Sign in with your email and password.</p>
       </header>
       {/* The form reads the URL (?org, ?next), so it renders on the client. */}
       <Suspense fallback={<div className="h-72" aria-hidden />}>

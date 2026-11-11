@@ -77,6 +77,11 @@ export function createOrgService({ db, logger, limiter, limits }: OrgServiceDeps
             fieldErrors: { organisation: ['This organisation ID is already taken'] },
           });
         }
+        if (isUniqueViolation(error, 'users_email_unique')) {
+          throw new ConflictError('This email is already registered', {
+            fieldErrors: { email: ['This email is already registered'] },
+          });
+        }
         throw error;
       }
     },

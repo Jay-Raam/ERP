@@ -24,8 +24,8 @@ let a: Org;
 let b: Org;
 
 beforeAll(async () => {
-  a = await registerOrg(app, { email: 'owner@a.example' });
-  b = await registerOrg(app, { email: 'owner@b.example' });
+  a = await registerOrg(app);
+  b = await registerOrg(app, { password: 'a different password 99' });
 });
 
 afterAll(() => database.close());
@@ -41,7 +41,6 @@ const cookieValue = (res: request.Response, name: string) =>
 const login = (target: TestApp, body: Record<string, unknown>) =>
   request(target).post('/auth/login').set(CLIENT).send(body);
 const credentials = (org: Org, overrides: Record<string, unknown> = {}) => ({
-  organisation: org.input.organisation,
   email: org.input.email,
   password: org.input.password,
   ...overrides,
@@ -58,7 +57,7 @@ describe('POST /auth/login', () => {
     const res = await login(app, credentials(a));
     expect(res.status).toBe(200);
     expect(res.body.viewer).toMatchObject({
-      user: { id: a.ownerId, email: 'owner@a.example' },
+      user: { id: a.ownerId, email: a.input.email },
       organisation: { id: a.tenantId, slug: a.input.organisation },
       role: { key: 'owner', dataScope: 'organisation' },
       permissions: ['*'],
@@ -109,50 +108,39 @@ describe('POST /auth/login', () => {
     expect(rows.some((r) => raw.includes(r.tokenHash) || r.tokenHash.includes(raw))).toBe(false);
   });
 
-  it('accepts the organisation and email in any case', async () => {
-    const res = await login(
-      app,
-      credentials(a, {
-        organisation: a.input.organisation.toUpperCase(),
-        email: ' OWNER@A.Example ',
-      }),
-    );
+  it('accepts the email in any case', async () => {
+    const res = await login(app, credentials(a, { email: ` ${a.input.email.toUpperCase()} ` }));
     expect(res.status).toBe(200);
   });
 
   it.each([
     ['wrong password', (o: Org) => credentials(o, { password: 'not the password' })],
     ['unknown email', (o: Org) => credentials(o, { email: 'nobody@a.example' })],
-    ['unknown organisation', (o: Org) => credentials(o, { organisation: 'no-such-org-zzz' })],
-    ['another tenant’s user', (o: Org) => credentials(o, { email: 'owner@b.example' })],
+    ['another tenant’s user', (o: Org) => credentials(o, { email: b.input.email })],
   ])('gives the same answer for %s', async (_label, build) => {
     const res = await login(app, build(a));
     expect(res.status).toBe(401);
     expect(res.body.error).toMatchObject({
       code: 'UNAUTHENTICATED',
-      message: 'Organisation, email or password is incorrect',
+      message: 'Email or password is incorrect',
     });
     expect(res.headers['set-cookie']).toBeUndefined();
   });
 
   it('validates input and reports fields', async () => {
-    const res = await login(app, { organisation: '', email: 'nope', password: '' });
+    const res = await login(app, { email: 'nope', password: '' });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('VALIDATION_ERROR');
-    expect(Object.keys(res.body.error.fieldErrors).sort()).toEqual([
-      'email',
-      'organisation',
-      'password',
-    ]);
+    expect(Object.keys(res.body.error.fieldErrors).sort()).toEqual(['email', 'password']);
   });
 
   it.each([
-    [{ organisation: "x' OR '1'='1", email: "a@b.co' OR 1=1 --", password: "' OR ''='" }],
-    [{ organisation: { $ne: null }, email: { $gt: '' }, password: { $ne: '' } }],
-    [{ organisation: ['a'], email: ['b'], password: ['c'] }],
+    [{ email: "a@b.co' OR 1=1 --", password: "' OR ''='" }],
+    [{ email: { $gt: '' }, password: { $ne: '' } }],
+    [{ email: ['b'], password: ['c'] }],
     [
       {
-        ...credentials({ input: { organisation: 'x', email: 'a@b.co', password: 'x' } } as Org),
+        ...credentials({ input: { email: 'a@b.co', password: 'x' } } as Org),
         role: 'owner',
       },
     ],
@@ -167,7 +155,7 @@ describe('POST /auth/login', () => {
       .post('/auth/login')
       .set(CLIENT)
       .set('Content-Type', 'application/json')
-      .send('{"organisation": ');
+      .send('{"email": ');
     expect(bad.status).toBe(400);
     expect(bad.body.error.code).toBe('BAD_REQUEST');
 
@@ -425,7 +413,6 @@ describe('lockout and rate limits', () => {
   it('locks unknown accounts the same way, so the lock reveals nothing', async () => {
     const limited = testApp({ limits: { loginFailures: { limit: 2, windowMs: 60_000 } } });
     const ghost = {
-      organisation: 'ghost-org',
       email: 'ghost@nowhere.example',
       password: 'whatever-it-is',
     };

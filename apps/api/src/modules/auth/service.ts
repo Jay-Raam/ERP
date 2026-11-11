@@ -13,7 +13,7 @@ import { hashPassword, verifyPassword } from '../../core/password';
 import { enforceLimit, retryMessage, type Limits, type RateLimiter } from '../../core/rate-limit';
 import type { AuthContext } from '../../core/request-context';
 import type { Database, TenantTx } from '../../db/client';
-import { findTenantBySlug, withTenant } from '../../db/tenant';
+import { findTenantByEmail, withTenant } from '../../db/tenant';
 import * as repo from './repository';
 
 export interface RequestMeta {
@@ -40,9 +40,9 @@ interface AuthServiceDeps {
   refreshGraceMs?: number;
 }
 
-// One message for every sign-in failure, so the response never reveals which
-// of organisation, email or password was wrong.
-const BAD_CREDENTIALS = 'Organisation, email or password is incorrect';
+// One message for every sign-in failure, so the response never reveals whether
+// the email exists or the password was wrong.
+const BAD_CREDENTIALS = 'Email or password is incorrect';
 const SESSION_ENDED = 'Your session has ended. Please sign in again.';
 
 export function createAuthService({
@@ -93,9 +93,7 @@ export function createAuthService({
       // Keyed by what was typed, whether or not the account exists, so the
       // lock itself does not reveal which accounts are real.
       // Hashed so email addresses are not stored as keys in Redis.
-      const account = createHash('sha256')
-        .update(`${input.organisation}\n${input.email}`)
-        .digest('hex');
+      const account = createHash('sha256').update(input.email).digest('hex');
       const accountKey = `login:acct:${account}`;
       const lock = await limiter.peek(accountKey, limits.loginFailures);
       if (!lock.allowed) {
@@ -104,9 +102,9 @@ export function createAuthService({
         );
       }
 
-      const tenant = await findTenantBySlug(db, input.organisation);
-      const user = tenant
-        ? await withTenant(db, tenant.id, (tx) => repo.findUserForLogin(tx, input.email))
+      const tenantId = await findTenantByEmail(db, input.email);
+      const user = tenantId
+        ? await withTenant(db, tenantId, (tx) => repo.findUserForLogin(tx, input.email))
         : null;
 
       const passwordOk = await verifyPassword(
@@ -114,7 +112,7 @@ export function createAuthService({
         user?.passwordHash ?? (await getDummyHash()),
       );
       const allowed =
-        tenant !== null &&
+        tenantId !== null &&
         user !== null &&
         passwordOk &&
         user.status === 'active' &&
@@ -122,13 +120,13 @@ export function createAuthService({
 
       if (!allowed) {
         await limiter.hit(accountKey, limits.loginFailures);
-        logger.info({ organisation: input.organisation }, 'sign-in rejected');
+        logger.info('sign-in rejected');
         throw new AuthenticationError(BAD_CREDENTIALS);
       }
 
       await limiter.reset(accountKey);
-      const auth: AuthContext = { userId: user.id, tenantId: tenant.id, sessionId: randomUUID() };
-      const result = await withTenant(db, tenant.id, async (tx) => {
+      const auth: AuthContext = { userId: user.id, tenantId, sessionId: randomUUID() };
+      const result = await withTenant(db, tenantId, async (tx) => {
         const sessionTokens = await issueTokens(tx, auth, meta);
         const viewer = await repo.loadViewer(tx, auth.userId, auth.sessionId);
         return { tokens: sessionTokens, viewer };
@@ -136,7 +134,7 @@ export function createAuthService({
       // Deactivated between the check above and here.
       if (!result.viewer) throw new AuthenticationError(BAD_CREDENTIALS);
 
-      logger.info({ tenantId: tenant.id, userId: user.id }, 'signed in');
+      logger.info({ tenantId, userId: user.id }, 'signed in');
       return { viewer: result.viewer, tokens: result.tokens };
     },
 

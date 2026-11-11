@@ -4,7 +4,6 @@ import { loginInputSchema, type Viewer } from '@erp/shared';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -21,7 +20,7 @@ import { VIEWER_QUERY_KEY } from './viewer';
 
 type FormInput = z.input<typeof loginInputSchema>;
 type FormOutput = z.output<typeof loginInputSchema>;
-const FIELDS = ['organisation', 'email', 'password'] as const;
+const FIELDS = ['email', 'password'] as const;
 
 export function LoginForm() {
   const router = useRouter();
@@ -38,7 +37,7 @@ export function LoginForm() {
     formState: { errors, isSubmitting },
   } = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(loginInputSchema),
-    defaultValues: { organisation: params.get('org') ?? '', email: '', password: '' },
+    defaultValues: { email: '', password: '' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -79,15 +78,6 @@ export function LoginForm() {
       ) : null}
 
       <Field
-        label="Organisation ID"
-        autoComplete="organization"
-        autoCapitalize="none"
-        spellCheck={false}
-        placeholder="acme-traders"
-        error={errors.organisation?.message}
-        {...register('organisation')}
-      />
-      <Field
         label="Email"
         type="email"
         inputMode="email"
@@ -108,16 +98,6 @@ export function LoginForm() {
         {isSubmitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
         {isSubmitting ? 'Signing in' : 'Sign in'}
       </Button>
-
-      <p className="text-center text-sm text-muted-foreground">
-        New here?{' '}
-        <Link
-          href="/register"
-          className="font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Create an organisation
-        </Link>
-      </p>
     </form>
   );
 }

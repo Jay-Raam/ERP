@@ -18,7 +18,6 @@ export const emailSchema = z
   .pipe(z.email('Enter a valid email'));
 
 export const loginInputSchema = z.strictObject({
-  organisation: orgSlugSchema,
   email: emailSchema,
   // Not trimmed: spaces can be part of a password. Upper bound stops hashing-cost abuse.
   password: z.string().min(1, 'Password is required').max(128),

@@ -55,6 +55,8 @@ export function gql(app: TestApp, query: string, variables?: Record<string, unkn
   return request(app).post('/graphql').set(CLIENT).send({ query, variables });
 }
 
+export const uniqueEmail = (prefix = 'user') =>
+  `${prefix}-${randomBytes(6).toString('hex')}@acme.example`;
 export const uniqueSlug = (prefix = 'org') => `${prefix}-${randomBytes(6).toString('hex')}`;
 
 export const REGISTER = /* GraphQL */ `
@@ -79,7 +81,7 @@ export function registerInput(overrides: Record<string, unknown> = {}) {
     organisationName: 'Acme Traders',
     organisation: uniqueSlug(),
     ownerName: 'Priya Raman',
-    email: 'priya@acme.example',
+    email: uniqueEmail('priya'),
     password: 'correct horse battery',
     ...overrides,
   };
@@ -98,7 +100,6 @@ export async function registerOrg(app: TestApp, overrides: Record<string, unknow
 export async function signIn(app: TestApp, org: { input: ReturnType<typeof registerInput> }) {
   const agent = request.agent(app);
   const res = await agent.post('/auth/login').set(CLIENT).send({
-    organisation: org.input.organisation,
     email: org.input.email,
     password: org.input.password,
   });

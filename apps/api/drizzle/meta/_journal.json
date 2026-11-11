@@ -22,6 +22,13 @@
       "when": 1794377081759,
       "tag": "0002_auth_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794411036748,
+      "tag": "0003_email_login",
+      "breakpoints": true
     }
   ]
 }

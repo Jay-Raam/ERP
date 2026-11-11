@@ -221,7 +221,10 @@ export function createAdminService({ db, logger }: AdminDeps) {
         audit(viewer, 'user.create', { userId: id });
         return (await run(viewer, (tx) => repo.findUser(tx, id)))!;
       } catch (error) {
-        if (isUniqueViolation(error, 'users_tenant_email_unique')) {
+        if (
+          isUniqueViolation(error, 'users_email_unique') ||
+          isUniqueViolation(error, 'users_tenant_email_unique')
+        ) {
           throw new ConflictError('A user with this email already exists', {
             fieldErrors: { email: ['A user with this email already exists'] },
           });

@@ -41,25 +41,21 @@ describe('isPermissionKey', () => {
 });
 
 describe('loginInputSchema', () => {
-  it('normalises organisation and email', () => {
+  it('normalises the email', () => {
     const parsed = loginInputSchema.parse({
-      organisation: '  Acme-Traders ',
       email: ' Owner@Acme.IN ',
       password: ' keep spaces ',
     });
     expect(parsed).toEqual({
-      organisation: 'acme-traders',
       email: 'owner@acme.in',
       password: ' keep spaces ',
     });
   });
 
-  it('rejects unknown fields, bad slugs and bad emails', () => {
-    const base = { organisation: 'acme', email: 'a@b.co', password: 'x' };
+  it('rejects unknown fields and bad emails', () => {
+    const base = { email: 'a@b.co', password: 'x' };
     expect(loginInputSchema.safeParse({ ...base, role: 'owner' }).success).toBe(false);
-    expect(loginInputSchema.safeParse({ ...base, organisation: "acme'; drop" }).success).toBe(
-      false,
-    );
+    expect(loginInputSchema.safeParse({ ...base, organisation: 'acme' }).success).toBe(false);
     expect(loginInputSchema.safeParse({ ...base, email: '<script>@x' }).success).toBe(false);
     expect(loginInputSchema.safeParse({ ...base, password: 'p'.repeat(129) }).success).toBe(false);
   });

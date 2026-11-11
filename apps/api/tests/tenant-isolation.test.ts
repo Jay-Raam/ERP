@@ -13,8 +13,8 @@ let a: Awaited<ReturnType<typeof registerOrg>>;
 let b: Awaited<ReturnType<typeof registerOrg>>;
 
 beforeAll(async () => {
-  a = await registerOrg(app, { email: 'owner@a.example' });
-  b = await registerOrg(app, { email: 'owner@b.example' });
+  a = await registerOrg(app);
+  b = await registerOrg(app);
 });
 
 afterAll(() => database.close());

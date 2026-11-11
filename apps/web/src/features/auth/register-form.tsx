@@ -57,13 +57,8 @@ export function RegisterForm() {
   const onSubmit = handleSubmit(async (values) => {
     setFormError(null);
     try {
-      const data = await gqlRequest<{ registerOrganisation: { organisation: { slug: string } } }>(
-        REGISTER,
-        { input: values },
-        { retryOnUnauthenticated: false },
-      );
-      const slug = data.registerOrganisation.organisation.slug;
-      router.push(`/login?org=${encodeURIComponent(slug)}&registered=1`);
+      await gqlRequest(REGISTER, { input: values }, { retryOnUnauthenticated: false });
+      router.push('/login?registered=1');
     } catch (error) {
       const action = resolveApiError(error);
       // "ID already taken" arrives as CONFLICT with a field error attached.
