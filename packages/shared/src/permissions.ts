@@ -58,3 +58,20 @@ export function hasPermission(granted: Iterable<string>, required: string): bool
   }
   return false;
 }
+
+/**
+ * True when the actor's own grants include everything `grant` would give.
+ * Used to stop privilege escalation: nobody can hand out more than they hold.
+ * `sale.*.*` is covered by `sale.*.*` or `*`, but not by `sale.invoice.*`.
+ */
+export function grantCovered(actorGrants: Iterable<string>, grant: string): boolean {
+  const wanted = grant.split('.');
+  for (const held of actorGrants) {
+    if (held === WILDCARD) return true;
+    if (grant === WILDCARD) continue;
+    const h = held.split('.');
+    if (h.length !== 3 || wanted.length !== 3) continue;
+    if (h.every((segment, i) => segment === WILDCARD || segment === wanted[i])) return true;
+  }
+  return false;
+}

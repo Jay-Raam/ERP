@@ -52,6 +52,8 @@ export function resolveApiError(error: unknown): ApiErrorAction {
   const serverMessage = typeof body?.message === 'string' && body.message ? body.message : FALLBACK;
 
   switch (code) {
+    // A conflict that names the field ("email already used") belongs next to that input.
+    case ErrorCode.CONFLICT:
     case ErrorCode.VALIDATION_ERROR:
       return isFieldErrors(body?.fieldErrors) && Object.keys(body.fieldErrors).length > 0
         ? { kind: 'fields', fieldErrors: body.fieldErrors, message: serverMessage, requestId }

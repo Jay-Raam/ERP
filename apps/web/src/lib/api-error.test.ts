@@ -40,6 +40,17 @@ describe('resolveApiError', () => {
     });
   });
 
+  it('puts a conflict that names fields next to those inputs', () => {
+    const action = resolveApiError(
+      gqlError({
+        code: 'CONFLICT',
+        message: 'This branch code is already used',
+        fieldErrors: { code: ['This branch code is already used'] },
+      }),
+    );
+    expect(action).toMatchObject({ kind: 'fields', fieldErrors: { code: [expect.any(String)] } });
+  });
+
   it('never shows the text of an unknown failure', () => {
     const action = resolveApiError(gqlError({ code: 'INTERNAL_ERROR' }, 'ECONNREFUSED db:5432'));
     expect(action).toMatchObject({ kind: 'toast', retryable: true });

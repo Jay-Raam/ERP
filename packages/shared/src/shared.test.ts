@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_ROLES,
+  PERMISSION_CATALOGUE,
+  createBranchInputSchema,
+  createRoleInputSchema,
+  grantCovered,
   cleanText,
   hasPermission,
   isErrorCode,
@@ -141,5 +145,68 @@ describe('registerOrganisationInputSchema', () => {
 describe('cleanText', () => {
   it('removes invisible and control characters', () => {
     expect(cleanText('  a\u0000b\u200bc\u202e  d\n\te ')).toBe('a b c d e');
+  });
+});
+
+describe('grantCovered', () => {
+  it('lets the wildcard cover anything and nothing else cover it', () => {
+    expect(grantCovered(['*'], 'sale.*.*')).toBe(true);
+    expect(grantCovered(['*'], '*')).toBe(true);
+    expect(grantCovered(['sale.*.*'], '*')).toBe(false);
+  });
+
+  it('covers narrower grants but never wider ones', () => {
+    expect(grantCovered(['sale.*.*'], 'sale.invoice.view')).toBe(true);
+    expect(grantCovered(['sale.*.view'], 'sale.invoice.view')).toBe(true);
+    expect(grantCovered(['sale.*.view'], 'sale.*.*')).toBe(false);
+    expect(grantCovered(['sale.invoice.*'], 'sale.*.view')).toBe(false);
+    expect(grantCovered(['store.*.*'], 'sale.invoice.view')).toBe(false);
+  });
+
+  it('denies on empty or malformed input', () => {
+    expect(grantCovered([], 'sale.invoice.view')).toBe(false);
+    expect(grantCovered(['sale.*'], 'sale.invoice.view')).toBe(false);
+  });
+});
+
+describe('permission catalogue', () => {
+  it('holds only valid, unique permission keys', () => {
+    const keys = PERMISSION_CATALOGUE.map((p) => p.key);
+    expect(new Set(keys).size).toBe(keys.length);
+    for (const p of PERMISSION_CATALOGUE) {
+      expect(isPermissionKey(p.key), p.key).toBe(true);
+      expect(p.key.startsWith(`${p.module}.`)).toBe(true);
+    }
+  });
+});
+
+describe('admin input schemas', () => {
+  it('normalises and de-duplicates role permissions', () => {
+    const parsed = createRoleInputSchema.parse({
+      name: '  Store   Keeper ',
+      dataScope: 'branch',
+      permissions: ['store.*.*', 'store.*.*', 'branch.branch.view'],
+    });
+    expect(parsed.name).toBe('Store Keeper');
+    expect(parsed.permissions).toEqual(['branch.branch.view', 'store.*.*']);
+  });
+
+  it('rejects unknown keys, bad permission strings and extra fields', () => {
+    expect(() =>
+      createRoleInputSchema.parse({ name: 'Ok Name', dataScope: 'own', permissions: ['nope'] }),
+    ).toThrow();
+    expect(() =>
+      createRoleInputSchema.parse({
+        name: 'Ok Name',
+        dataScope: 'own',
+        permissions: [],
+        isSystem: true,
+      }),
+    ).toThrow();
+  });
+
+  it('upper-cases branch codes and rejects unsafe ones', () => {
+    expect(createBranchInputSchema.parse({ code: 'chn-1', name: 'Chennai' }).code).toBe('CHN-1');
+    expect(() => createBranchInputSchema.parse({ code: '../x', name: 'Chennai' })).toThrow();
   });
 });

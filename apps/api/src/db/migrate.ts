@@ -25,10 +25,31 @@ if (process.argv[1] && /migrate\.(ts|cjs|js)$/.test(process.argv[1])) {
   runMigrations(url, folder)
     .then(() => process.stdout.write('migrations applied\n'))
     .catch((error: unknown) => {
-      // Print the message only: connection errors can carry the URL.
-      process.stderr.write(
-        `migration failed: ${error instanceof Error ? error.message : 'unknown error'}\n`,
-      );
+      // The ORM wraps the real failure; walk down to it. Messages only: the URL holds a password.
+      const messages: string[] = [];
+      let current: unknown = error;
+      for (let depth = 0; current instanceof Error && depth < 5; depth++) {
+        const code = (current as { code?: unknown }).code;
+        messages.push(typeof code === 'string' ? `${current.message} [${code}]` : current.message);
+        current = current.cause;
+      }
+      process.stderr.write(`migration failed: ${messages.join('\n  caused by: ')}\n`);
+
+      const root = messages.at(-1) ?? '';
+      const host = new URL(url).hostname;
+      if (/ENOTFOUND|EAI_AGAIN/.test(root)) {
+        process.stderr.write(
+          `\nCannot find the database host "${host}". If this is a private hostname (for example *.railway.internal), use the provider's public connection URL when running from your own computer.\n`,
+        );
+      } else if (/ECONNREFUSED|ETIMEDOUT|CONNECT_TIMEOUT/.test(root)) {
+        process.stderr.write(
+          `\nCannot connect to "${host}". Check that the database is running and reachable (pnpm infra:up for the local one).\n`,
+        );
+      } else if (/28P01|28000|password authentication/.test(root)) {
+        process.stderr.write(
+          '\nThe database rejected the username or password in the connection URL.\n',
+        );
+      }
       process.exit(1);
     });
 }

@@ -33,4 +33,11 @@ describe('visibleNavigation', () => {
   it('shows someone with no permissions only the dashboard', () => {
     expect(visibleNavigation([]).map((i) => i.label)).toEqual(['Dashboard']);
   });
+
+  it('shows Users, Roles and Branches to a Super Admin but not to the Sale team', () => {
+    expect(labelsFor('super_admin')).toEqual(
+      expect.arrayContaining(['Users', 'Roles', 'Branches']),
+    );
+    expect(labelsFor('sale_team')).not.toContain('Users');
+  });
 });

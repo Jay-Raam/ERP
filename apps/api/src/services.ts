@@ -3,6 +3,7 @@ import { createTokenService } from './core/auth/tokens';
 import type { Logger } from './core/logger';
 import type { Limits, RateLimiter } from './core/rate-limit';
 import type { Database } from './db/client';
+import { createAdminService } from './modules/admin/service';
 import { createAuthService } from './modules/auth/service';
 import { createOrgService } from './modules/org/service';
 
@@ -22,6 +23,7 @@ export function createServices({ env, db, logger, limiter, limits, refreshGraceM
     tokens,
     auth: createAuthService({ db, logger, tokens, limiter, limits, refreshGraceMs }),
     org: createOrgService({ db, logger, limiter, limits }),
+    admin: createAdminService({ db, logger }),
   };
 }
 

@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Truck,
+  UserCog,
   Users,
   Wallet,
   type LucideIcon,
@@ -35,7 +36,7 @@ export const NAVIGATION: readonly NavItem[] = [
     href: '/branches',
     icon: Building2,
     anyOf: ['branch.branch.view'],
-    ready: false,
+    ready: true,
   },
   {
     label: 'Employees',
@@ -44,7 +45,14 @@ export const NAVIGATION: readonly NavItem[] = [
     anyOf: ['employee.employee.view'],
     ready: false,
   },
-  { label: 'Roles', href: '/roles', icon: ShieldCheck, anyOf: ['rbac.role.view'], ready: false },
+  { label: 'Roles', href: '/roles', icon: ShieldCheck, anyOf: ['rbac.role.view'], ready: true },
+  {
+    label: 'Users',
+    href: '/users',
+    icon: UserCog,
+    anyOf: ['rbac.user.view'],
+    ready: true,
+  },
   {
     label: 'Accounts',
     href: '/accounts',
