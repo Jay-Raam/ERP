@@ -34,7 +34,8 @@ export async function listRoles(tx: TenantTx): Promise<RoleRow[]> {
       dataScope: roles.dataScope,
       isSystem: roles.isSystem,
       version: roles.version,
-      userCount: sql<number>`(select count(*)::int from ${users} where ${users.roleId} = ${roles.id})`,
+      // "roles"."id" is written out: a bare ${roles.id} renders unqualified and binds to users.id.
+      userCount: sql<number>`(select count(*)::int from ${users} where ${users.roleId} = "roles"."id")`,
     })
     .from(roles)
     .orderBy(asc(roles.isSystem), asc(roles.name));

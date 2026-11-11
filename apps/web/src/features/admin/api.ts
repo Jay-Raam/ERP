@@ -46,15 +46,17 @@ const keys = {
   users: ['admin', 'users'] as const,
 };
 
-export const useRoles = () =>
+export const useRoles = (enabled = true) =>
   useQuery({
+    enabled,
     queryKey: keys.roles,
     queryFn: async () =>
       (await gqlRequest<{ roles: Role[] }>(`{ roles { ${ROLE_FIELDS} } }`)).roles,
   });
 
-export const useBranches = () =>
+export const useBranches = (enabled = true) =>
   useQuery({
+    enabled,
     queryKey: keys.branches,
     queryFn: async () =>
       (await gqlRequest<{ branches: Branch[] }>(`{ branches { ${BRANCH_FIELDS} } }`)).branches,
@@ -67,8 +69,9 @@ export interface UserFilter {
 }
 export const USERS_PAGE_SIZE = 20;
 
-export const useUsers = (filter: UserFilter) =>
+export const useUsers = (filter: UserFilter, enabled = true) =>
   useQuery({
+    enabled,
     queryKey: [...keys.users, filter],
     placeholderData: (previous) => previous,
     queryFn: async () => {

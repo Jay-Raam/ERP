@@ -20,6 +20,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Modal } from '@/components/ui/modal';
 import { NoAccess, PageHeader } from '@/components/ui/page-header';
@@ -64,49 +72,55 @@ export function RolesPage() {
       />
       <QueryState query={query} emptyText="No roles.">
         {(roles) => (
-          <ul className="divide-y rounded-lg border bg-card">
+          <ul className="grid gap-4 sm:grid-cols-2">
             {roles.map((role) => (
-              <li key={role.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 font-medium">
-                    {role.name}
-                    {role.isSystem ? (
-                      <Lock
-                        className="size-3.5 text-muted-foreground"
-                        aria-label="Protected role"
-                      />
-                    ) : null}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {SCOPE[role.dataScope]} · {role.permissions.length} permission
-                    {role.permissions.length === 1 ? '' : 's'} · {role.userCount} user
-                    {role.userCount === 1 ? '' : 's'}
-                  </p>
-                </div>
-                {role.isSystem ? null : (
-                  <div className="flex gap-2">
-                    <Can permission="rbac.role.update">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        aria-label={`Edit ${role.name}`}
-                        onClick={() => setEditing(role)}
-                      >
-                        Edit
-                      </Button>
-                    </Can>
-                    <Can permission="rbac.role.delete">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        aria-label={`Delete ${role.name}`}
-                        onClick={() => setDeleting(role)}
-                      >
-                        Delete
-                      </Button>
-                    </Can>
-                  </div>
-                )}
+              <li key={role.id}>
+                <Card className="h-full gap-4 py-5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      {role.name}
+                      {role.isSystem ? (
+                        <Lock
+                          className="size-3.5 text-muted-foreground"
+                          aria-label="Protected role"
+                        />
+                      ) : null}
+                    </CardTitle>
+                    <CardDescription>{SCOPE[role.dataScope]}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-wrap gap-2">
+                    <Badge variant="secondary">
+                      {role.permissions.length} permission{role.permissions.length === 1 ? '' : 's'}
+                    </Badge>
+                    <Badge variant="outline">
+                      {role.userCount} user{role.userCount === 1 ? '' : 's'}
+                    </Badge>
+                  </CardContent>
+                  {role.isSystem ? null : (
+                    <CardFooter className="mt-auto gap-2">
+                      <Can permission="rbac.role.update">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label={`Edit ${role.name}`}
+                          onClick={() => setEditing(role)}
+                        >
+                          Edit
+                        </Button>
+                      </Can>
+                      <Can permission="rbac.role.delete">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          aria-label={`Delete ${role.name}`}
+                          onClick={() => setDeleting(role)}
+                        >
+                          Delete
+                        </Button>
+                      </Can>
+                    </CardFooter>
+                  )}
+                </Card>
               </li>
             ))}
           </ul>

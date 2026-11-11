@@ -394,6 +394,17 @@ describe('users', () => {
     expect(code(unknownRole)).toBe('VALIDATION_ERROR');
   });
 
+  it('counts the users on each role', async () => {
+    const u = await userWithRole('sale_team');
+    const rolesNow = (await q(owner, ROLES)).body.data.roles as {
+      key: string;
+      userCount: number;
+    }[];
+    expect(rolesNow.find((r) => r.key === 'sale_team')!.userCount).toBeGreaterThanOrEqual(1);
+    expect(rolesNow.find((r) => r.key === 'owner')!.userCount).toBe(1);
+    expect(u.id).toBeTruthy();
+  });
+
   it('lists with search, status filter and paging; searches literally', async () => {
     const tag = Math.random().toString(36).slice(2, 8);
     for (const n of ['Alpha', 'Beta', 'Gamma']) {

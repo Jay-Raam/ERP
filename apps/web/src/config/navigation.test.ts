@@ -41,3 +41,22 @@ describe('visibleNavigation', () => {
     expect(labelsFor('sale_team')).not.toContain('Users');
   });
 });
+
+describe('groupedNavigation', () => {
+  it('lists sections in order and drops empty ones', async () => {
+    const { groupedNavigation } = await import('./navigation');
+    const employee = DEFAULT_ROLES.find((r) => r.key === 'employee')!.permissions;
+    expect(groupedNavigation(employee).map((g) => g.group)).toEqual([
+      'Overview',
+      'Operations',
+      'Finance',
+    ]);
+    const owner = DEFAULT_ROLES.find((r) => r.key === 'owner')!.permissions;
+    expect(groupedNavigation(owner).map((g) => g.group)).toEqual([
+      'Overview',
+      'Organisation',
+      'Operations',
+      'Finance',
+    ]);
+  });
+});

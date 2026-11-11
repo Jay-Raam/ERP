@@ -17,6 +17,8 @@ import { Field } from '@/components/ui/field';
 import { Modal } from '@/components/ui/modal';
 import { NoAccess, PageHeader, StatusBadge } from '@/components/ui/page-header';
 import { PasswordField } from '@/components/ui/password-field';
+import { initials } from '@/components/layout/app-shell';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { SelectField, type SelectOption } from '@/components/ui/select-field';
@@ -143,10 +145,19 @@ export function UsersPage() {
                 </TableHeader>
                 <TableBody>
                   {data.items.map((u) => (
-                    <TableRow key={u.id}>
+                    <TableRow key={u.id} className="hover:bg-accent/40">
                       <TableCell className="px-4 py-3">
-                        <p className="font-medium">{u.fullName}</p>
-                        <p className="text-muted-foreground">{u.email}</p>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-9">
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {initials(u.fullName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0">
+                            <p className="font-medium">{u.fullName}</p>
+                            <p className="text-muted-foreground">{u.email}</p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell className="px-4 py-3">{u.role.name}</TableCell>
                       <TableCell className="px-4 py-3">

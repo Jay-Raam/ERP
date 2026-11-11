@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { PasswordField } from '@/components/ui/password-field';
@@ -67,20 +68,14 @@ export function LoginForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       {params.get('registered') && !formError ? (
-        <p
-          role="status"
-          className="rounded-md border border-success/30 bg-success/10 px-3 py-2 text-sm"
-        >
-          Your organisation is ready. Sign in to continue.
-        </p>
+        <Alert>
+          <AlertDescription>Your organisation is ready. Sign in to continue.</AlertDescription>
+        </Alert>
       ) : null}
       {formError ? (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
-        >
-          {formError}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
       ) : null}
 
       <Field

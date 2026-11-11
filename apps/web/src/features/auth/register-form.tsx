@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { PasswordField } from '@/components/ui/password-field';
@@ -87,12 +88,9 @@ export function RegisterForm() {
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       {formError ? (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm"
-        >
-          {formError}
-        </p>
+        <Alert variant="destructive">
+          <AlertDescription>{formError}</AlertDescription>
+        </Alert>
       ) : null}
 
       <Field
