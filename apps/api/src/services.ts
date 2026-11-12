@@ -9,6 +9,7 @@ import { createAttendanceService } from './modules/hr/attendance.service';
 import { createCalendarService } from './modules/hr/calendar.service';
 import { createEmployeesService } from './modules/hr/employees.service';
 import { createLeaveService } from './modules/hr/leave.service';
+import { createStoreService } from './modules/store/store.service';
 import { createOrgService } from './modules/org/service';
 
 export interface ServiceDeps {
@@ -42,6 +43,7 @@ export function createServices({
     attendance: createAttendanceService({ db, logger, now }),
     calendar: createCalendarService({ db, logger, now }),
     leave: createLeaveService({ db, logger, now }),
+    store: createStoreService({ db, logger }),
   };
 }
 

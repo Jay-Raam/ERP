@@ -1,4 +1,5 @@
 import { ensureHrDefaults } from '../hr/defaults.repository';
+import { ensureStoreDefaults } from '../store/defaults.repository';
 import { randomUUID } from 'node:crypto';
 import { DEFAULT_ROLES, OWNER_ROLE_KEY, registerOrganisationInputSchema } from '@erp/shared';
 import { ConflictError } from '../../core/errors';
@@ -68,6 +69,7 @@ export function createOrgService({ db, logger, limiter, limits }: OrgServiceDeps
           });
           await repo.assignBranch(tx, { tenantId, userId: owner.id, branchId: branch.id });
           await ensureHrDefaults(tx, tenantId);
+          await ensureStoreDefaults(tx, tenantId);
           return { organisation, owner };
         });
 

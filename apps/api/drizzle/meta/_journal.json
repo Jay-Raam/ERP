@@ -50,6 +50,13 @@
       "when": 1794493946292,
       "tag": "0006_holidays",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794495094526,
+      "tag": "0007_inventory",
+      "breakpoints": true
     }
   ]
 }

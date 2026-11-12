@@ -101,7 +101,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: Package,
     group: 'Operations',
     anyOf: ['store.item.view'],
-    ready: false,
+    ready: true,
   },
   {
     label: 'Purchase',

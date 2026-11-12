@@ -5,6 +5,8 @@ import * as orgRepo from '../modules/org/repository';
 import * as adminRepo from '../modules/admin/repository';
 import { ensureHrDefaults } from '../modules/hr/defaults.repository';
 import { insertEmployee } from '../modules/hr/employees.repository';
+import { ensureStoreDefaults } from '../modules/store/defaults.repository';
+import * as storeRepo from '../modules/store/store.repository';
 import { createDatabase } from './client';
 import { shifts } from './schema';
 import { findTenantBySlug, withTenant } from './tenant';
@@ -19,6 +21,49 @@ export const DEMO_USERS = [
   { email: 'sales@demo.test', fullName: 'Divya Menon', role: 'sale_team', branches: ['CHN-1'] },
   { email: 'accounts@demo.test', fullName: 'Karthik S', role: 'account_team', branches: ['HO'] },
   { email: 'employee@demo.test', fullName: 'Meena Iyer', role: 'employee', branches: ['CHN-1'] },
+] as const;
+
+const DEMO_ITEMS = [
+  {
+    sku: 'RICE-25',
+    name: 'Basmati rice 25 kg bag',
+    unit: 'pcs',
+    category: 'Grocery',
+    reorder: '20',
+    stock: '120',
+  },
+  {
+    sku: 'OIL-1L',
+    name: 'Sunflower oil 1 L',
+    unit: 'pcs',
+    category: 'Grocery',
+    reorder: '50',
+    stock: '40',
+  },
+  {
+    sku: 'SUGAR',
+    name: 'Sugar',
+    unit: 'kg',
+    category: 'Grocery',
+    reorder: '100',
+    stock: '640.500',
+  },
+  {
+    sku: 'PEN-BLUE',
+    name: 'Ball pen, blue',
+    unit: 'box',
+    category: 'Stationery',
+    reorder: '10',
+    stock: '25',
+  },
+  {
+    sku: 'A4-RIM',
+    name: 'A4 paper rim',
+    unit: 'pack',
+    category: 'Stationery',
+    reorder: '15',
+    stock: '0',
+  },
 ] as const;
 
 export async function seedDemo(url: string): Promise<'created' | 'exists'> {
@@ -46,6 +91,7 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
       await ensureHrDefaults(tx, tenantId);
       const [general] = await tx.select({ id: shifts.id }).from(shifts).limit(1);
       let n = 0;
+      let adminId = '';
       for (const u of DEMO_USERS) {
         const userId = await adminRepo.insertUserRow(tx, {
           tenantId,
@@ -60,6 +106,7 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
           userId,
           u.branches.map((code) => branchByCode[code]!),
         );
+        if (u.role === 'super_admin') adminId = userId;
         n += 1;
         await insertEmployee(tx, {
           tenantId,
@@ -74,6 +121,32 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
           shiftId: general?.id ?? null,
           userId,
         });
+      }
+
+      // Starter store: one warehouse at head office and a few items, some of them running low.
+      await ensureStoreDefaults(tx, tenantId);
+      const [main] = await storeRepo.listWarehouses(tx, { scope: { kind: 'organisation' } });
+      for (const item of DEMO_ITEMS) {
+        const itemId = await storeRepo.insertItem(tx, {
+          tenantId,
+          sku: item.sku,
+          name: item.name,
+          unit: item.unit,
+          category: item.category,
+          reorderLevel: item.reorder,
+        });
+        if (main && Number(item.stock) > 0) {
+          await storeRepo.applyMovement(tx, {
+            tenantId,
+            itemId,
+            warehouseId: main.id,
+            kind: 'receipt',
+            delta: item.stock,
+            reference: 'Opening stock',
+            reason: null,
+            createdBy: adminId,
+          });
+        }
       }
     });
     return 'created';
