@@ -4,6 +4,7 @@ import { adminResolvers, adminTypeDefs } from '../modules/admin/schema';
 import { authResolvers, authTypeDefs } from '../modules/auth/schema';
 import { hrResolvers, hrTypeDefs } from '../modules/hr/schema';
 import { orgResolvers, orgTypeDefs } from '../modules/org/schema';
+import { purchaseResolvers, purchaseTypeDefs } from '../modules/purchase/schema';
 import { storeResolvers, storeTypeDefs } from '../modules/store/schema';
 import type { Services } from '../services';
 import type { GraphQLContext } from './context';
@@ -26,7 +27,15 @@ const rootTypeDefs = /* GraphQL */ `
 /** Root schema: each business module contributes typeDefs and resolvers. */
 export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
   return createSchema<GraphQLContext>({
-    typeDefs: [rootTypeDefs, orgTypeDefs, authTypeDefs, adminTypeDefs, hrTypeDefs, storeTypeDefs],
+    typeDefs: [
+      rootTypeDefs,
+      orgTypeDefs,
+      authTypeDefs,
+      adminTypeDefs,
+      hrTypeDefs,
+      storeTypeDefs,
+      purchaseTypeDefs,
+    ],
     resolvers: [
       {
         Query: {
@@ -43,6 +52,7 @@ export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
       adminResolvers(services.admin),
       hrResolvers(services.employees, services.attendance, services.calendar, services.leave),
       storeResolvers(services.store),
+      purchaseResolvers(services.purchase),
     ],
   });
 }

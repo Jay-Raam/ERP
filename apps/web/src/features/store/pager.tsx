@@ -6,13 +6,15 @@ export function Pager({
   total,
   noun,
   onPage,
+  pageSize = PAGE_SIZE,
 }: {
   page: number;
   total: number;
   noun: string;
   onPage: (page: number) => void;
+  pageSize?: number;
 }) {
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const pages = Math.max(1, Math.ceil(total / pageSize));
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-t px-4 py-3 text-sm text-muted-foreground">
       <span>

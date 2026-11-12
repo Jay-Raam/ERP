@@ -6,6 +6,7 @@ import {
   issueStockInputSchema,
   listItemsInputSchema,
   listWarehousesInputSchema,
+  MAX_STOCK,
   movementsInputSchema,
   receiveStockInputSchema,
   stockLevelsInputSchema,
@@ -23,6 +24,7 @@ import {
   ValidationError,
 } from '../../core/errors';
 import { parseId } from '../../core/errors/parse-id';
+import { enforceLimit, type Limits, type RateLimiter } from '../../core/rate-limit';
 import type { Logger } from '../../core/logger';
 import type { Database, TenantTx } from '../../db/client';
 import { isUniqueViolation } from '../../db/errors';
@@ -36,9 +38,11 @@ const STALE = 'Someone else changed this record. Reload it and try again.';
 export interface StoreDeps {
   db: Database;
   logger: Logger;
+  limiter: RateLimiter;
+  limits: Limits;
 }
 
-export function createStoreService({ db, logger }: StoreDeps) {
+export function createStoreService({ db, logger, limiter, limits }: StoreDeps) {
   const run = <T>(viewer: Viewer, fn: (tx: TenantTx, tenantId: string) => Promise<T>) =>
     withTenant(db, viewer.organisation.id, (tx) => fn(tx, viewer.organisation.id));
 
@@ -75,6 +79,20 @@ export function createStoreService({ db, logger }: StoreDeps) {
     throw new BusinessRuleError(message, { fieldErrors: { quantity: [message] } });
   }
 
+  async function tooMuch(): Promise<never> {
+    const message = `Too much stock: one warehouse can hold at most ${MAX_STOCK}`;
+    throw new BusinessRuleError(message, { fieldErrors: { quantity: [message] } });
+  }
+
+  /** The ledger is append-only, so one user cannot be allowed to flood it. */
+  const limitWrites = (viewer: Viewer) =>
+    enforceLimit(
+      limiter,
+      `stock:user:${viewer.user.id}`,
+      limits.stockWritesPerUser,
+      'You are changing stock too quickly.',
+    );
+
   /** Receipts, issues and adjustments: one signed change to one warehouse. */
   async function single(
     viewer: Viewer,
@@ -87,6 +105,7 @@ export function createStoreService({ db, logger }: StoreDeps) {
       reason: string | null;
     },
   ) {
+    await limitWrites(viewer);
     const balance = await run(viewer, async (tx, tenantId) => {
       await activeItem(tx, input.itemId);
       await visibleWarehouse(tx, viewer, input.warehouseId, 'warehouseId');
@@ -100,7 +119,11 @@ export function createStoreService({ db, logger }: StoreDeps) {
         reason: input.reason,
         createdBy: viewer.user.id,
       });
-      if (result === null) return notEnough(tx, input.itemId, input.warehouseId);
+      if (result === null) {
+        return input.delta.startsWith('-')
+          ? notEnough(tx, input.itemId, input.warehouseId)
+          : tooMuch();
+      }
       return result;
     });
     audit(viewer, `stock.${kind}`, {
@@ -232,6 +255,7 @@ export function createStoreService({ db, logger }: StoreDeps) {
       requirePermission(viewer, 'store.stock.transfer');
       const input = transferStockInputSchema.parse(raw);
       const transferId = randomUUID();
+      await limitWrites(viewer);
       const result = await run(viewer, async (tx, tenantId) => {
         await activeItem(tx, input.itemId);
         await visibleWarehouse(tx, viewer, input.fromWarehouseId, 'fromWarehouseId');
@@ -261,7 +285,8 @@ export function createStoreService({ db, logger }: StoreDeps) {
           from = await leg(input.fromWarehouseId, 'transfer_out', `-${input.quantity}`);
         }
         if (from === null) return notEnough(tx, input.itemId, input.fromWarehouseId);
-        return { from, to: to! };
+        if (to === null) return tooMuch();
+        return { from, to };
       });
       audit(viewer, 'stock.transfer', {
         itemId: input.itemId,

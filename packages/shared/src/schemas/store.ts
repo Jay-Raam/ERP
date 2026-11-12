@@ -1,21 +1,7 @@
 import { z } from 'zod';
-import { cleanText, plainText } from './text';
+import { cleanText, optionalText, plainText } from './text';
 
 const uuid = z.uuid('Invalid id');
-
-function optionalText(label: string, max: number) {
-  return z
-    .string()
-    .nullish()
-    .transform((v) => (v === null || v === undefined ? null : cleanText(v) || null))
-    .pipe(
-      z
-        .string()
-        .max(max, `${label} must be at most ${max} characters`)
-        .regex(/^[^<>]*$/, `${label} cannot contain < or >`)
-        .nullable(),
-    );
-}
 
 const nullishInt = (min: number, max: number, fallback: number) =>
   z
@@ -38,6 +24,8 @@ const pageFields = {
  * up to 11 whole digits and 3 decimals ("12", "0.5", "1250.375").
  */
 const QUANTITY = /^(0|[1-9][0-9]{0,10})(\.[0-9]{1,3})?$/;
+/** The most one warehouse can hold: the largest value of the numeric(14,3) column. */
+export const MAX_STOCK = '99999999999.999';
 const isZero = (q: string) => Number(q) === 0;
 
 export const positiveQuantity = z
@@ -57,6 +45,13 @@ export const signedQuantity = z
   .trim()
   .regex(/^-?(0|[1-9][0-9]{0,10})(\.[0-9]{1,3})?$/, 'Enter a quantity like 5 or -2.5')
   .refine((q) => !isZero(q), 'Quantity must not be zero');
+
+/** Search text: control and invisible characters are dropped, so a NUL byte cannot reach the database. */
+const searchText = z
+  .string()
+  .max(80)
+  .nullish()
+  .transform((v) => (v ? cleanText(v) || undefined : undefined));
 
 // --------------------------------------------------------------------- items
 
@@ -91,12 +86,7 @@ export const updateItemInputSchema = z.strictObject({
 });
 
 export const listItemsInputSchema = z.strictObject({
-  search: z
-    .string()
-    .trim()
-    .max(80)
-    .nullish()
-    .transform((v) => (v ? v : undefined)),
+  search: searchText,
   status: z
     .enum(['active', 'inactive'])
     .nullish()
@@ -186,12 +176,7 @@ export const MOVEMENT_KINDS = [
 export type MovementKind = (typeof MOVEMENT_KINDS)[number];
 
 export const stockLevelsInputSchema = z.strictObject({
-  search: z
-    .string()
-    .trim()
-    .max(80)
-    .nullish()
-    .transform((v) => (v ? v : undefined)),
+  search: searchText,
   warehouseId: uuid.nullish().transform((v) => v ?? undefined),
   lowOnly: z
     .boolean()

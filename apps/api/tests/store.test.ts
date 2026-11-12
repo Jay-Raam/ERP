@@ -671,3 +671,71 @@ describe('store: isolation and database guarantees', () => {
     expect(await onHand(item.id)).toBe('2.000');
   });
 });
+
+describe('store: limits found by the security review', () => {
+  it('refuses to take a warehouse past its maximum instead of failing with a 500', async () => {
+    const item = await newItem();
+    expect((await receive(item.id, main, '99999999999.999')).body.data.receiveStock.balance).toBe(
+      '99999999999.999',
+    );
+    const over = await receive(item.id, main, '0.001');
+    expect(code(over)).toBe('BUSINESS_RULE');
+    expect(over.body.errors[0].extensions.fieldErrors.quantity[0]).toMatch(/Too much stock/);
+    const adj = await q(owner(), ADJUST, {
+      i: { itemId: item.id, warehouseId: main, quantity: '1', reason: 'Recount' },
+    });
+    expect(code(adj)).toBe('BUSINESS_RULE');
+    expect(await onHand(item.id)).toBe('99999999999.999');
+  });
+
+  it('refuses a transfer into a full warehouse and changes nothing', async () => {
+    const item = await newItem();
+    await receive(item.id, wh2, '99999999999.999');
+    await receive(item.id, main, '5');
+    for (const [from, to] of [
+      [main, wh2],
+      [wh2, main],
+    ] as const) {
+      // Whichever order the legs run in, the destination being full is a clean rule error.
+      if (from === wh2) continue;
+      const res = await q(owner(), TRANSFER, {
+        i: { itemId: item.id, fromWarehouseId: from, toWarehouseId: to, quantity: '1' },
+      });
+      expect(code(res)).toBe('BUSINESS_RULE');
+    }
+    expect(await onHand(item.id, owner(), main)).toBe('5.000');
+    expect(await onHand(item.id, owner(), wh2)).toBe('99999999999.999');
+    expect(
+      (await q(owner(), MOVES, { i: { itemId: item.id } })).body.data.stockMovements.total,
+    ).toBe(2);
+  });
+
+  it('ignores control characters in a search instead of crashing', async () => {
+    await newItem({ name: 'Searchable nul item' });
+    const hit = await q(owner(), LIST_ITEMS, { i: { search: 'nul\u0000 item' } });
+    expect(hit.body.errors).toBeUndefined();
+    expect(hit.body.data.items.total).toBe(1);
+    const levels = await q(owner(), LEVELS, { i: { search: '\u0000' } });
+    expect(levels.body.errors).toBeUndefined();
+  });
+
+  it('limits how fast one user can change stock', async () => {
+    const strict = testApp({ limits: { stockWritesPerUser: { limit: 3, windowMs: 60_000 } } });
+    const o = await registerOrg(strict);
+    const c = await buildCompany(strict, o);
+    const item = (
+      await q(c.owner, CREATE_ITEM, { i: { sku: 'RATE-1', unit: 'pcs', name: 'Rate item' } })
+    ).body.data.createItem.id;
+    const wh = (await q(c.owner, WAREHOUSES)).body.data.warehouses[0].id;
+    const results = [];
+    for (let i = 0; i < 5; i++) results.push(await receive(item, wh, '1', c.owner));
+    expect(results.map((r) => code(r) ?? 'ok')).toEqual([
+      'ok',
+      'ok',
+      'ok',
+      'RATE_LIMITED',
+      'RATE_LIMITED',
+    ]);
+    expect(await onHand(item, c.owner)).toBe('3.000');
+  });
+});

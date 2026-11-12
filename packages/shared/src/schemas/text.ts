@@ -29,3 +29,18 @@ export function plainText(label: string, min: number, max: number) {
         .regex(/^[^<>]*$/, `${label} cannot contain < or >`),
     );
 }
+
+/** Optional single-line text: blank becomes null; markup is rejected like in plainText. */
+export function optionalText(label: string, max: number) {
+  return z
+    .string()
+    .nullish()
+    .transform((v) => (v === null || v === undefined ? null : cleanText(v) || null))
+    .pipe(
+      z
+        .string()
+        .max(max, `${label} must be at most ${max} characters`)
+        .regex(/^[^<>]*$/, `${label} cannot contain < or >`)
+        .nullable(),
+    );
+}

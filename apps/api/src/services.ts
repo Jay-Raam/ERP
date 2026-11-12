@@ -9,6 +9,7 @@ import { createAttendanceService } from './modules/hr/attendance.service';
 import { createCalendarService } from './modules/hr/calendar.service';
 import { createEmployeesService } from './modules/hr/employees.service';
 import { createLeaveService } from './modules/hr/leave.service';
+import { createPurchaseService } from './modules/purchase/purchase.service';
 import { createStoreService } from './modules/store/store.service';
 import { createOrgService } from './modules/org/service';
 
@@ -43,7 +44,8 @@ export function createServices({
     attendance: createAttendanceService({ db, logger, now }),
     calendar: createCalendarService({ db, logger, now }),
     leave: createLeaveService({ db, logger, now }),
-    store: createStoreService({ db, logger }),
+    store: createStoreService({ db, logger, limiter, limits }),
+    purchase: createPurchaseService({ db, logger, limiter, limits }),
   };
 }
 

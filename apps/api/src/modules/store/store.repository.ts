@@ -1,5 +1,5 @@
 import { and, asc, eq, ilike, or, sql, type SQL } from 'drizzle-orm';
-import type { MovementKind } from '@erp/shared';
+import { MAX_STOCK, type MovementKind } from '@erp/shared';
 import type { TenantTx } from '../../db/client';
 import { branches, items, stockBalances, stockMovements, users, warehouses } from '../../db/schema';
 import type { Scope } from '../hr/scope';
@@ -244,7 +244,8 @@ export async function updateWarehouse(
  *
  * The balance changes in a single UPDATE that refuses to go below zero, so two people issuing
  * the last units at the same moment cannot both succeed: the second waits on the row lock,
- * then finds too little left. Returns the new balance, or null when there was not enough stock.
+ * then finds too little left. Returns the new balance, or null when the change would take the
+ * balance below zero or above MAX_STOCK.
  */
 export async function applyMovement(
   tx: TenantTx,
@@ -276,6 +277,8 @@ export async function applyMovement(
         eq(stockBalances.itemId, m.itemId),
         eq(stockBalances.warehouseId, m.warehouseId),
         sql`${stockBalances.quantity} + ${m.delta}::numeric >= 0`,
+        // Beyond the column's range the database would fail with a 500, so refuse it here.
+        sql`${stockBalances.quantity} + ${m.delta}::numeric <= ${MAX_STOCK}::numeric`,
       ),
     )
     .returning({ quantity: stockBalances.quantity });
@@ -328,7 +331,7 @@ export async function stockSummary(
 
   const grouped = sql`
     select i.id, i.sku, i.name, i.unit, i.status, i.reorder_level,
-           coalesce(sum(b.quantity) filter (where w.id is not null), 0)::numeric(14,3) as on_hand
+           coalesce(sum(b.quantity) filter (where w.id is not null), 0)::numeric(20,3) as on_hand
     from items i
     left join stock_balances b on b.item_id = i.id
     left join warehouses w on w.id = b.warehouse_id and ${scope} ${warehouse}

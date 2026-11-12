@@ -24,6 +24,8 @@ export interface Limits {
   registerPerIp: LimitRule;
   /** Token refreshes from one IP. */
   refreshPerIp: LimitRule;
+  /** Stock changes by one user: the ledger is append-only, so a flood cannot be cleaned up. */
+  stockWritesPerUser: LimitRule;
 }
 
 const MINUTE = 60_000;
@@ -35,6 +37,7 @@ export const DEFAULT_LIMITS: Limits = {
   loginFailuresPerAccount: { limit: 40, windowMs: 15 * MINUTE },
   registerPerIp: { limit: 5, windowMs: 60 * MINUTE },
   refreshPerIp: { limit: 60, windowMs: MINUTE },
+  stockWritesPerUser: { limit: 120, windowMs: MINUTE },
 };
 
 export function retryMessage(what: string, retryAfterMs: number): string {

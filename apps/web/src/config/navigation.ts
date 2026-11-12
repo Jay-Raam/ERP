@@ -109,7 +109,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: Truck,
     group: 'Operations',
     anyOf: ['purchase.order.view', 'purchase.bill.view'],
-    ready: false,
+    ready: true,
   },
   {
     label: 'Accounts',
