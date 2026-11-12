@@ -29,6 +29,13 @@
       "when": 1794411036748,
       "tag": "0003_email_login",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794412302158,
+      "tag": "0004_hr_employees_attendance_leave",
+      "breakpoints": true
     }
   ]
 }

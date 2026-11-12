@@ -3,6 +3,7 @@ import {
   BarChart3,
   Building2,
   CalendarCheck,
+  CalendarDays,
   LayoutDashboard,
   Landmark,
   Package,
@@ -48,7 +49,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: Users,
     group: 'Organisation',
     anyOf: ['employee.employee.view'],
-    ready: false,
+    ready: true,
   },
   {
     label: 'Users',
@@ -72,7 +73,19 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: CalendarCheck,
     group: 'Operations',
     anyOf: ['attendance.record.view', 'attendance.record.view-own'],
-    ready: false,
+    ready: true,
+  },
+  {
+    label: 'Leave',
+    href: '/leave',
+    icon: CalendarDays,
+    group: 'Operations',
+    anyOf: [
+      'attendance.leave.request-own',
+      'attendance.leave.view',
+      'attendance.leave-type.manage',
+    ],
+    ready: true,
   },
   {
     label: 'Sales',

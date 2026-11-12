@@ -11,7 +11,7 @@ describe('visibleNavigation', () => {
   });
 
   it('shows an Employee only self-service areas', () => {
-    expect(labelsFor('employee')).toEqual(['Dashboard', 'Attendance', 'Payroll']);
+    expect(labelsFor('employee')).toEqual(['Dashboard', 'Attendance', 'Leave', 'Payroll']);
   });
 
   it('hides Purchase and Roles from the Sale team', () => {

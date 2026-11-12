@@ -24,6 +24,8 @@ export const organisations = pgTable(
     id: id(),
     slug: text('slug').notNull(),
     name: text('name').notNull(),
+    /** IANA zone used to decide which calendar day a punch belongs to. */
+    timezone: text('timezone').notNull().default('Asia/Kolkata'),
     status: recordStatus('status').notNull().default('active'),
     ...timestamps,
     version: version(),

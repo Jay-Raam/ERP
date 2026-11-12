@@ -30,6 +30,7 @@ export function testApp(
     env?: Record<string, string>;
     limits?: Partial<Limits>;
     refreshGraceMs?: number;
+    now?: () => Date;
   } = {},
 ) {
   const env = loadEnv({
@@ -45,6 +46,7 @@ export function testApp(
     limiter: createMemoryRateLimiter(),
     limits: { ...RELAXED, ...overrides.limits },
     refreshGraceMs: overrides.refreshGraceMs,
+    now: overrides.now,
     schema: overrides.schema,
   });
 }

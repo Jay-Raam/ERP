@@ -3,7 +3,10 @@ import { DEFAULT_ROLES, OWNER_ROLE_KEY } from '@erp/shared';
 import { hashPassword } from '../core/password';
 import * as orgRepo from '../modules/org/repository';
 import * as adminRepo from '../modules/admin/repository';
+import { ensureHrDefaults } from '../modules/hr/defaults.repository';
+import { insertEmployee } from '../modules/hr/employees.repository';
 import { createDatabase } from './client';
+import { shifts } from './schema';
 import { findTenantBySlug, withTenant } from './tenant';
 
 /** Local demo data. Every account shares one well-known password, so never run this in production. */
@@ -40,6 +43,9 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
         name: 'Chennai One',
       });
       const branchByCode: Record<string, string> = { HO: ho.id, 'CHN-1': chn };
+      await ensureHrDefaults(tx, tenantId);
+      const [general] = await tx.select({ id: shifts.id }).from(shifts).limit(1);
+      let n = 0;
       for (const u of DEMO_USERS) {
         const userId = await adminRepo.insertUserRow(tx, {
           tenantId,
@@ -54,6 +60,20 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
           userId,
           u.branches.map((code) => branchByCode[code]!),
         );
+        n += 1;
+        await insertEmployee(tx, {
+          tenantId,
+          employeeCode: `EMP-${String(n).padStart(3, '0')}`,
+          fullName: u.fullName,
+          email: u.email,
+          phone: null,
+          branchId: branchByCode[u.branches[0]]!,
+          department: null,
+          designation: null,
+          joiningDate: '2024-04-01',
+          shiftId: general?.id ?? null,
+          userId,
+        });
       }
     });
     return 'created';

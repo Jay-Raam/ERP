@@ -5,6 +5,9 @@ import type { Limits, RateLimiter } from './core/rate-limit';
 import type { Database } from './db/client';
 import { createAdminService } from './modules/admin/service';
 import { createAuthService } from './modules/auth/service';
+import { createAttendanceService } from './modules/hr/attendance.service';
+import { createEmployeesService } from './modules/hr/employees.service';
+import { createLeaveService } from './modules/hr/leave.service';
 import { createOrgService } from './modules/org/service';
 
 export interface ServiceDeps {
@@ -14,16 +17,29 @@ export interface ServiceDeps {
   limiter: RateLimiter;
   limits: Limits;
   refreshGraceMs?: number;
+  /** Test seam: the clock HR rules use. */
+  now?: () => Date;
 }
 
 /** Builds every service once at boot. Resolvers and routes only ever call these. */
-export function createServices({ env, db, logger, limiter, limits, refreshGraceMs }: ServiceDeps) {
+export function createServices({
+  env,
+  db,
+  logger,
+  limiter,
+  limits,
+  refreshGraceMs,
+  now,
+}: ServiceDeps) {
   const tokens = createTokenService(env.JWT_SECRET);
   return {
     tokens,
     auth: createAuthService({ db, logger, tokens, limiter, limits, refreshGraceMs }),
     org: createOrgService({ db, logger, limiter, limits }),
     admin: createAdminService({ db, logger }),
+    employees: createEmployeesService({ db, logger }),
+    attendance: createAttendanceService({ db, logger, now }),
+    leave: createLeaveService({ db, logger, now }),
   };
 }
 

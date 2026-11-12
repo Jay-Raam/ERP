@@ -45,6 +45,8 @@ export interface AppDeps {
   limiter: RateLimiter;
   limits?: Partial<Limits>;
   refreshGraceMs?: number;
+  /** Test seam: the clock HR rules use. */
+  now?: () => Date;
   /** Overridable so tests can mount resolvers that fail on purpose. */
   schema?: GraphQLSchema;
   /** Defaults to a PostgreSQL ping. */
@@ -58,6 +60,7 @@ export function createApp({
   limiter,
   limits: limitOverrides,
   refreshGraceMs,
+  now,
   schema,
   readinessChecks = [{ name: 'postgres', check: database.ping }],
 }: AppDeps): Express {
@@ -70,6 +73,7 @@ export function createApp({
     limiter,
     limits,
     refreshGraceMs,
+    now,
   });
   const app = express();
 

@@ -5,7 +5,7 @@ export default [
   {
     // SQL lives in repositories and src/db only. Services and resolvers never build queries.
     files: ['src/**/*.ts'],
-    ignores: ['src/db/**', 'src/**/repository.ts'],
+    ignores: ['src/db/**', 'src/**/repository.ts', 'src/**/*.repository.ts'],
     rules: {
       'no-restricted-imports': [
         'error',

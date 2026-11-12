@@ -7,3 +7,4 @@ export * from './schemas/auth';
 export * from './schemas/org';
 export * from './schemas/text';
 export * from './schemas/admin';
+export * from './schemas/hr';

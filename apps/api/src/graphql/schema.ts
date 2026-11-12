@@ -2,6 +2,7 @@ import { createSchema } from 'graphql-yoga';
 import type { Env } from '../config/env';
 import { adminResolvers, adminTypeDefs } from '../modules/admin/schema';
 import { authResolvers, authTypeDefs } from '../modules/auth/schema';
+import { hrResolvers, hrTypeDefs } from '../modules/hr/schema';
 import { orgResolvers, orgTypeDefs } from '../modules/org/schema';
 import type { Services } from '../services';
 import type { GraphQLContext } from './context';
@@ -24,7 +25,7 @@ const rootTypeDefs = /* GraphQL */ `
 /** Root schema: each business module contributes typeDefs and resolvers. */
 export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
   return createSchema<GraphQLContext>({
-    typeDefs: [rootTypeDefs, orgTypeDefs, authTypeDefs, adminTypeDefs],
+    typeDefs: [rootTypeDefs, orgTypeDefs, authTypeDefs, adminTypeDefs, hrTypeDefs],
     resolvers: [
       {
         Query: {
@@ -39,6 +40,7 @@ export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
       orgResolvers(services.org),
       authResolvers,
       adminResolvers(services.admin),
+      hrResolvers(services.employees, services.attendance, services.leave),
     ],
   });
 }
