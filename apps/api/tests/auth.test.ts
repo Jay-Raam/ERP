@@ -410,6 +410,41 @@ describe('lockout and rate limits', () => {
     expect((await login(limited, credentials(a))).status).toBe(200);
   });
 
+  it('does not let a stranger lock the owner out from another IP', async () => {
+    const limited = testApp({ limits: { loginFailures: { limit: 3, windowMs: 60_000 } } });
+    const org = await registerOrg(limited);
+    const attacker = (body: object) =>
+      request(limited)
+        .post('/auth/login')
+        .set(CLIENT)
+        .set('X-Forwarded-For', '203.0.113.9')
+        .send(body);
+    for (let i = 0; i < 3; i++) {
+      expect((await attacker(credentials(org, { password: 'wrong-password' }))).status).toBe(401);
+    }
+    expect((await attacker(credentials(org))).status).toBe(429);
+    // The real owner, on their own IP, can still sign in.
+    expect((await login(limited, credentials(org))).status).toBe(200);
+  });
+
+  it('still locks an account guessed from many IPs once the account-wide cap is hit', async () => {
+    const limited = testApp({
+      limits: {
+        loginFailures: { limit: 3, windowMs: 60_000 },
+        loginFailuresPerAccount: { limit: 4, windowMs: 60_000 },
+      },
+    });
+    const org = await registerOrg(limited);
+    for (let i = 0; i < 4; i++) {
+      await request(limited)
+        .post('/auth/login')
+        .set(CLIENT)
+        .set('X-Forwarded-For', `198.51.100.${i + 1}`)
+        .send(credentials(org, { password: 'wrong-password' }));
+    }
+    expect((await login(limited, credentials(org))).status).toBe(429);
+  });
+
   it('locks unknown accounts the same way, so the lock reveals nothing', async () => {
     const limited = testApp({ limits: { loginFailures: { limit: 2, windowMs: 60_000 } } });
     const ghost = {

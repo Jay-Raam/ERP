@@ -4,7 +4,6 @@ import {
   createRoleInputSchema,
   createUserInputSchema,
   grantCovered,
-  idSchema,
   listUsersInputSchema,
   resetPasswordInputSchema,
   updateBranchInputSchema,
@@ -19,6 +18,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '../../core/errors';
+import { parseId } from '../../core/errors/parse-id';
 import { requirePermission } from '../../core/auth/guard';
 import type { Logger } from '../../core/logger';
 import { hashPassword } from '../../core/password';
@@ -104,7 +104,7 @@ export function createAdminService({ db, logger }: AdminDeps) {
 
     async updateRole(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'rbac.role.update');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const input = updateRoleInputSchema.parse(raw);
       assertCanGrant(viewer, input.permissions);
       await run(viewer, async (tx, tenantId) => {
@@ -125,7 +125,7 @@ export function createAdminService({ db, logger }: AdminDeps) {
 
     async deleteRole(viewer: Viewer, rawId: unknown) {
       requirePermission(viewer, 'rbac.role.delete');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       await run(viewer, async (tx) => {
         const role = await repo.findRole(tx, id, true);
         if (!role) throw new NotFoundError('Role not found');
@@ -171,7 +171,7 @@ export function createAdminService({ db, logger }: AdminDeps) {
 
     async updateBranch(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'branch.branch.update');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const input = updateBranchInputSchema.parse(raw);
       await run(viewer, async (tx) => {
         const branch = await repo.findBranch(tx, id, true);
@@ -235,7 +235,7 @@ export function createAdminService({ db, logger }: AdminDeps) {
 
     async updateUser(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'rbac.user.update');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const input = updateUserInputSchema.parse(raw);
       await run(viewer, async (tx, tenantId) => {
         const target = await repo.lockUser(tx, id);
@@ -284,7 +284,7 @@ export function createAdminService({ db, logger }: AdminDeps) {
 
     async resetUserPassword(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'rbac.user.update');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const { password } = resetPasswordInputSchema.parse(raw);
       if (id === viewer.user.id) {
         throw new BusinessRuleError('You cannot reset your own password this way');

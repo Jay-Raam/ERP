@@ -51,7 +51,7 @@ export function createAuthService({
   tokens,
   limiter,
   limits,
-  refreshGraceMs = 10_000,
+  refreshGraceMs = 3_000,
 }: AuthServiceDeps) {
   // Verified against when the account does not exist, so "no such user" costs
   // the same time as "wrong password".
@@ -93,9 +93,16 @@ export function createAuthService({
       // Keyed by what was typed, whether or not the account exists, so the
       // lock itself does not reveal which accounts are real.
       // Hashed so email addresses are not stored as keys in Redis.
+      // Two counters: email + IP (tight, so a stranger's guesses only lock their own IP out
+      // of that account) and email alone (loose, a backstop against a spread-out guessing attack).
       const account = createHash('sha256').update(input.email).digest('hex');
+      const pairKey = `login:pair:${account}:${meta.ip}`;
       const accountKey = `login:acct:${account}`;
-      const lock = await limiter.peek(accountKey, limits.loginFailures);
+      const [pairLock, accountLock] = await Promise.all([
+        limiter.peek(pairKey, limits.loginFailures),
+        limiter.peek(accountKey, limits.loginFailuresPerAccount),
+      ]);
+      const lock = !pairLock.allowed ? pairLock : accountLock;
       if (!lock.allowed) {
         throw new RateLimitedError(
           retryMessage('Too many failed sign-in attempts.', lock.retryAfterMs),
@@ -119,12 +126,15 @@ export function createAuthService({
         user.orgStatus === 'active';
 
       if (!allowed) {
-        await limiter.hit(accountKey, limits.loginFailures);
+        await Promise.all([
+          limiter.hit(pairKey, limits.loginFailures),
+          limiter.hit(accountKey, limits.loginFailuresPerAccount),
+        ]);
         logger.info('sign-in rejected');
         throw new AuthenticationError(BAD_CREDENTIALS);
       }
 
-      await limiter.reset(accountKey);
+      await limiter.reset(pairKey);
       const auth: AuthContext = { userId: user.id, tenantId, sessionId: randomUUID() };
       const result = await withTenant(db, tenantId, async (tx) => {
         const sessionTokens = await issueTokens(tx, auth, meta);

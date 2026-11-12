@@ -13,8 +13,13 @@ export interface Limits {
   global: LimitRule;
   /** Sign-in attempts from one IP, right or wrong. */
   loginPerIp: LimitRule;
-  /** Failed sign-ins for one organisation + email before a temporary lock. */
+  /** Failed sign-ins for one email from one IP before that IP is locked out of that email. */
   loginFailures: LimitRule;
+  /**
+   * Failed sign-ins for one email from anywhere. Much higher than loginFailures so one
+   * stranger cannot lock the real owner out with a handful of guesses.
+   */
+  loginFailuresPerAccount: LimitRule;
   /** New organisations from one IP. */
   registerPerIp: LimitRule;
   /** Token refreshes from one IP. */
@@ -27,6 +32,7 @@ export const DEFAULT_LIMITS: Limits = {
   global: { limit: 300, windowMs: MINUTE },
   loginPerIp: { limit: 30, windowMs: 10 * MINUTE },
   loginFailures: { limit: 5, windowMs: 15 * MINUTE },
+  loginFailuresPerAccount: { limit: 40, windowMs: 15 * MINUTE },
   registerPerIp: { limit: 5, windowMs: 60 * MINUTE },
   refreshPerIp: { limit: 60, windowMs: MINUTE },
 };

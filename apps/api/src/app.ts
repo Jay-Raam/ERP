@@ -15,7 +15,10 @@ import type { Logger } from './core/logger';
 import { DEFAULT_LIMITS, globalRateLimit, type Limits, type RateLimiter } from './core/rate-limit';
 import { getContext, getRequestId } from './core/request-context';
 import type { DatabaseHandle } from './db/client';
+import { useQueryLimits } from './graphql/limits';
 import { buildSchema, type GraphQLContext } from './graphql/schema';
+
+const GRAPHQL_BODY_LIMIT = '256kb';
 import { authRouter } from './modules/auth/routes';
 import { createServices } from './services';
 
@@ -137,9 +140,10 @@ export function createApp({
         viewer: () => (viewer ??= services.auth.getViewer(auth)),
       };
     },
-    plugins: [useUniformErrors(), ...(isProd ? [useDisableIntrospection()] : [])],
+    plugins: [useUniformErrors(), useQueryLimits(), ...(isProd ? [useDisableIntrospection()] : [])],
   });
-  app.use(yoga.graphqlEndpoint, yoga);
+  // Queries are small; refuse anything big before it is read into memory. (REST auth is 10kb.)
+  app.use(yoga.graphqlEndpoint, express.json({ limit: GRAPHQL_BODY_LIMIT }), yoga);
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
