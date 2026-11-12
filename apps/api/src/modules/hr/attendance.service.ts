@@ -55,7 +55,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
   }): ShiftRules => s;
 
   async function todayFor(tx: TenantTx, employeeId: string, shiftId: string | null) {
-    const zone = await repo.organisationZone(tx);
+    const { timeZone: zone, weeklyOff } = await repo.organisationCalendar(tx);
     const date = localDate(now(), zone);
     const [shift] = shiftId ? await repo.shiftsByIds(tx, [shiftId]) : [];
     const punches = await repo.punchesInRange(tx, [employeeId], date, date, zone);
@@ -68,6 +68,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
       leave: [],
       shift: shift ? shiftRules(shift) : null,
       timeZone: zone,
+      weeklyOff,
     });
     return {
       date,
@@ -205,7 +206,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
       const input = attendanceRangeInputSchema.parse(raw);
 
       return run(viewer, async (tx) => {
-        const zone = await repo.organisationZone(tx);
+        const { timeZone: zone, weeklyOff } = await repo.organisationCalendar(tx);
         const today = localDate(now(), zone);
 
         let people: employeeRepo.EmployeeRow[];
@@ -255,6 +256,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
             leave: leave.filter((l) => l.employeeId === p.id),
             shift: shift ? shiftRules(shift) : null,
             timeZone: zone,
+            weeklyOff,
           });
           return { employee: p, days };
         });

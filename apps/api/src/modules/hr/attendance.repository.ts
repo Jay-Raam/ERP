@@ -27,8 +27,15 @@ const punchColumns = {
 };
 
 export async function organisationZone(tx: TenantTx): Promise<string> {
-  const [row] = await tx.select({ tz: organisations.timezone }).from(organisations).limit(1);
-  return row?.tz ?? 'Asia/Kolkata';
+  return (await organisationCalendar(tx)).timeZone;
+}
+
+export async function organisationCalendar(tx: TenantTx) {
+  const [row] = await tx
+    .select({ tz: organisations.timezone, off: organisations.weeklyOffDays })
+    .from(organisations)
+    .limit(1);
+  return { timeZone: row?.tz ?? 'Asia/Kolkata', weeklyOff: row?.off ?? [0] };
 }
 
 export async function lastPunch(tx: TenantTx, employeeId: string): Promise<PunchRow | null> {

@@ -5,7 +5,7 @@ import { gqlRequest } from '@/lib/api-client';
 
 export type Status = 'active' | 'inactive';
 export type DayStatus =
-  'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'upcoming';
+  'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'off' | 'upcoming';
 export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export interface Employee {

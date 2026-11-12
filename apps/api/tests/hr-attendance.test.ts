@@ -296,6 +296,17 @@ describe('attendance report', () => {
   });
 });
 
+describe('weekly off', () => {
+  it('shows Sunday as off by default, not absent', async () => {
+    at('2026-11-20T10:00:00Z');
+    const res = await q(company.owner, RANGE, {
+      i: { employeeId: bob.employeeId, from: '2026-11-14', to: '2026-11-16' },
+    });
+    const days = res.body.data.attendance.items[0].days.map((d: { status: string }) => d.status);
+    expect(days).toEqual(['absent', 'off', 'absent']); // Sat, Sun, Mon
+  });
+});
+
 describe('shifts', () => {
   it('needs the manage permission to change them', async () => {
     const input = {

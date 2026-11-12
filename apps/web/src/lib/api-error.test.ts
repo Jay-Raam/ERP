@@ -51,6 +51,22 @@ describe('resolveApiError', () => {
     expect(action).toMatchObject({ kind: 'fields', fieldErrors: { code: [expect.any(String)] } });
   });
 
+  it('puts a business rule that names fields next to those inputs, and toasts one that does not', () => {
+    const named = resolveApiError(
+      gqlError({
+        code: 'BUSINESS_RULE',
+        message: 'You already have leave requested for some of these dates',
+        fieldErrors: { startDate: ['These dates overlap another request'] },
+      }),
+    );
+    expect(named).toMatchObject({
+      kind: 'fields',
+      fieldErrors: { startDate: [expect.any(String)] },
+    });
+    const plain = resolveApiError(gqlError({ code: 'BUSINESS_RULE' }, 'You just punched.'));
+    expect(plain).toMatchObject({ kind: 'toast', message: 'You just punched.' });
+  });
+
   it('never shows the text of an unknown failure', () => {
     const action = resolveApiError(gqlError({ code: 'INTERNAL_ERROR' }, 'ECONNREFUSED db:5432'));
     expect(action).toMatchObject({ kind: 'toast', retryable: true });

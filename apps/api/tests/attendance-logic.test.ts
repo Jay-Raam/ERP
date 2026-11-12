@@ -144,6 +144,46 @@ describe('buildDays', () => {
   });
 });
 
+describe('weekly off', () => {
+  const base = {
+    today: '2026-11-20',
+    joiningDate: '2026-01-01',
+    shift,
+    timeZone: IST,
+    punches: [],
+    leave: [],
+  };
+
+  it('marks the configured weekdays as off instead of absent', () => {
+    // 2026-11-14 is a Saturday, 11-15 a Sunday, 11-16 a Monday.
+    const days = buildDays({ ...base, from: '2026-11-14', to: '2026-11-16', weeklyOff: [0] });
+    expect(days.map((d) => d.status)).toEqual(['absent', 'off', 'absent']);
+    const two = buildDays({ ...base, from: '2026-11-14', to: '2026-11-16', weeklyOff: [0, 6] });
+    expect(two.map((d) => d.status)).toEqual(['off', 'off', 'absent']);
+  });
+
+  it('still shows the day worked when someone punched on a day off', () => {
+    const days = buildDays({
+      ...base,
+      from: '2026-11-15',
+      to: '2026-11-15',
+      weeklyOff: [0],
+      punches: [
+        { at: t('2026-11-15T03:30:00Z'), kind: 'in' },
+        { at: t('2026-11-15T12:30:00Z'), kind: 'out' },
+      ],
+    });
+    expect(days[0]!.status).toBe('present');
+  });
+
+  it('keeps upcoming days off too, and defaults to no days off', () => {
+    expect(
+      buildDays({ ...base, from: '2026-11-22', to: '2026-11-22', weeklyOff: [0] })[0]!.status,
+    ).toBe('off');
+    expect(buildDays({ ...base, from: '2026-11-15', to: '2026-11-15' })[0]!.status).toBe('absent');
+  });
+});
+
 describe('computeBalance', () => {
   const type = {
     id: 't1',

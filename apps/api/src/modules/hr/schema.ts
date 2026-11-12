@@ -93,6 +93,7 @@ export const hrTypeDefs = /* GraphQL */ `
     incomplete
     leave
     absent
+    off
     upcoming
   }
 

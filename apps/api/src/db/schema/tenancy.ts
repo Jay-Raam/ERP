@@ -7,6 +7,7 @@ import {
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   unique,
@@ -26,6 +27,11 @@ export const organisations = pgTable(
     name: text('name').notNull(),
     /** IANA zone used to decide which calendar day a punch belongs to. */
     timezone: text('timezone').notNull().default('Asia/Kolkata'),
+    /** Weekly days off, 0 = Sunday … 6 = Saturday. Attendance shows these as "off" rather than absent. */
+    weeklyOffDays: smallint('weekly_off_days')
+      .array()
+      .notNull()
+      .default(sql`'{0}'::smallint[]`),
     status: recordStatus('status').notNull().default('active'),
     ...timestamps,
     version: version(),

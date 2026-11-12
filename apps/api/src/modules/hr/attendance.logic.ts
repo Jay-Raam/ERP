@@ -16,7 +16,7 @@ export interface ShiftRules {
 }
 
 export type DayStatus =
-  'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'upcoming';
+  'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'off' | 'upcoming';
 
 export interface DaySummary {
   date: string;
@@ -159,6 +159,8 @@ export function buildDays(opts: {
   leave: readonly LeaveSpan[];
   shift: ShiftRules | null;
   timeZone: string;
+  /** 0 = Sunday … 6 = Saturday. A day off with no punches is "off", not absent. */
+  weeklyOff?: readonly number[];
 }): (DaySummary & { punches: (PunchLike & { id?: string })[] })[] {
   const byDate = groupByLocalDate(opts.punches, opts.timeZone);
   const result: (DaySummary & { punches: (PunchLike & { id?: string })[] })[] = [];
@@ -172,8 +174,15 @@ export function buildDays(opts: {
       });
       continue;
     }
+    const isOff = (opts.weeklyOff ?? []).includes(new Date(`${date}T00:00:00Z`).getUTCDay());
     const onLeave = opts.leave.some((l) => l.startDate <= date && date <= l.endDate);
-    const status: DayStatus = onLeave ? 'leave' : date > opts.today ? 'upcoming' : 'absent';
+    const status: DayStatus = isOff
+      ? 'off'
+      : onLeave
+        ? 'leave'
+        : date > opts.today
+          ? 'upcoming'
+          : 'absent';
     result.push({
       date,
       firstIn: null,

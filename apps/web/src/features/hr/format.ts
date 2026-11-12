@@ -38,6 +38,7 @@ export const DAY_STATUS_LABEL: Record<DayStatus, string> = {
   incomplete: 'Not clocked out',
   leave: 'On leave',
   absent: 'Absent',
+  off: 'Day off',
   upcoming: '',
 };
 

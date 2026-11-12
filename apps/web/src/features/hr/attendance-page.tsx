@@ -226,7 +226,7 @@ function DayBadge({ day }: { day: AttendanceDay }) {
       ? 'success'
       : day.status === 'absent'
         ? 'destructive'
-        : day.status === 'leave' || day.status === 'incomplete'
+        : day.status === 'leave' || day.status === 'incomplete' || day.status === 'off'
           ? 'outline'
           : 'secondary';
   return (
@@ -492,7 +492,6 @@ function ManualPunchForm({
 
 type ShiftCreateIn = z.input<typeof createShiftInputSchema>;
 type ShiftCreateOut = z.output<typeof createShiftInputSchema>;
-const shiftEditSchema = updateShiftInputSchema;
 
 function ShiftsView() {
   const query = useShifts();
@@ -578,14 +577,20 @@ const SHIFT_FIELDS = [
 
 function ShiftForm({ shift, onDone }: { shift: Shift | null; onDone: () => void }) {
   const save = useSaveShift();
-  const schema = shift ? shiftEditSchema.omit({ version: true }) : createShiftInputSchema;
+  // The shift schemas carry cross-field rules, so zod cannot .omit() from them; the form keeps
+  // `version` as a hidden default and strips it before sending (the hook adds it back).
+  const schema = shift ? updateShiftInputSchema : createShiftInputSchema;
   const {
     register,
     control,
     handleSubmit,
     setError,
     formState: { errors },
-  } = useForm<ShiftCreateIn & { status?: 'active' | 'inactive' }, unknown, ShiftCreateOut>({
+  } = useForm<
+    ShiftCreateIn & { status?: 'active' | 'inactive'; version?: number },
+    unknown,
+    ShiftCreateOut
+  >({
     // The edit schema only adds `status`, so one form type covers both.
     resolver: zodResolver(schema as unknown as typeof createShiftInputSchema),
     defaultValues: {
@@ -595,12 +600,14 @@ function ShiftForm({ shift, onDone }: { shift: Shift | null; onDone: () => void 
       graceMinutes: shift?.graceMinutes ?? 15,
       fullDayMinutes: shift?.fullDayMinutes ?? 480,
       halfDayMinutes: shift?.halfDayMinutes ?? 240,
-      ...(shift ? { status: shift.status } : {}),
+      ...(shift ? { status: shift.status, version: shift.version } : {}),
     },
   });
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await save.mutateAsync({ id: shift?.id, version: shift?.version, input: values });
+      const { version: _version, ...input } = values as typeof values & { version?: number };
+      void _version;
+      await save.mutateAsync({ id: shift?.id, version: shift?.version, input });
       toast.success(shift ? 'Shift updated' : 'Shift added');
       onDone();
     } catch (error) {

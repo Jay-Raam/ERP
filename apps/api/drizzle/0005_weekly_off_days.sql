@@ -1,0 +1,1 @@
+ALTER TABLE "organisations" ADD COLUMN "weekly_off_days" smallint[] DEFAULT '{0}'::smallint[] NOT NULL;

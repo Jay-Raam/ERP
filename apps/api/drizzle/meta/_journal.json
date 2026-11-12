@@ -36,6 +36,13 @@
       "when": 1794412302158,
       "tag": "0004_hr_employees_attendance_leave",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794491332730,
+      "tag": "0005_weekly_off_days",
+      "breakpoints": true
     }
   ]
 }
