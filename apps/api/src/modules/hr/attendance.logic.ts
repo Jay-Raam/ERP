@@ -16,7 +16,15 @@ export interface ShiftRules {
 }
 
 export type DayStatus =
-  'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'off' | 'upcoming';
+  | 'present'
+  | 'half_day'
+  | 'short'
+  | 'incomplete'
+  | 'leave'
+  | 'absent'
+  | 'off'
+  | 'holiday'
+  | 'upcoming';
 
 export interface DaySummary {
   date: string;
@@ -27,6 +35,8 @@ export interface DaySummary {
   /** An "in" with no matching "out" yet. */
   open: boolean;
   status: DayStatus;
+  /** Set on organisation holidays. */
+  holidayName?: string | null;
 }
 
 export const MIN_GAP_SECONDS = 10;
@@ -161,6 +171,8 @@ export function buildDays(opts: {
   timeZone: string;
   /** 0 = Sunday … 6 = Saturday. A day off with no punches is "off", not absent. */
   weeklyOff?: readonly number[];
+  /** Organisation holidays by local date. A holiday with no punches is "holiday", not absent. */
+  holidays?: ReadonlyMap<string, string>;
 }): (DaySummary & { punches: (PunchLike & { id?: string })[] })[] {
   const byDate = groupByLocalDate(opts.punches, opts.timeZone);
   const result: (DaySummary & { punches: (PunchLike & { id?: string })[] })[] = [];
@@ -176,13 +188,16 @@ export function buildDays(opts: {
     }
     const isOff = (opts.weeklyOff ?? []).includes(new Date(`${date}T00:00:00Z`).getUTCDay());
     const onLeave = opts.leave.some((l) => l.startDate <= date && date <= l.endDate);
-    const status: DayStatus = isOff
-      ? 'off'
-      : onLeave
-        ? 'leave'
-        : date > opts.today
-          ? 'upcoming'
-          : 'absent';
+    const holidayName = opts.holidays?.get(date) ?? null;
+    const status: DayStatus = holidayName
+      ? 'holiday'
+      : isOff
+        ? 'off'
+        : onLeave
+          ? 'leave'
+          : date > opts.today
+            ? 'upcoming'
+            : 'absent';
     result.push({
       date,
       firstIn: null,
@@ -191,6 +206,7 @@ export function buildDays(opts: {
       late: false,
       open: false,
       status,
+      holidayName,
       punches: [],
     });
   }

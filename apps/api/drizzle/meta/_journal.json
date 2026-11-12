@@ -43,6 +43,13 @@
       "when": 1794491332730,
       "tag": "0005_weekly_off_days",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794493946292,
+      "tag": "0006_holidays",
+      "breakpoints": true
     }
   ]
 }

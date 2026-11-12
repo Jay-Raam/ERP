@@ -1,12 +1,12 @@
 import {
   createEmployeeInputSchema,
-  idSchema,
   listEmployeesInputSchema,
   updateEmployeeInputSchema,
   type Viewer,
 } from '@erp/shared';
 import { requirePermission } from '../../core/auth/guard';
 import { ConflictError, NotFoundError, ValidationError } from '../../core/errors';
+import { parseId } from '../../core/errors/parse-id';
 import type { Logger } from '../../core/logger';
 import type { Database, TenantTx } from '../../db/client';
 import { isUniqueViolation } from '../../db/errors';
@@ -91,7 +91,7 @@ export function createEmployeesService({ db, logger }: { db: Database; logger: L
 
     async get(viewer: Viewer, rawId: unknown) {
       requirePermission(viewer, 'employee.employee.view');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const row = await run(viewer, (tx) => repo.findEmployee(tx, id));
       // Outside the scope looks exactly like missing.
       if (!row || !inScope(viewer, row)) throw new NotFoundError('Employee not found');
@@ -128,7 +128,7 @@ export function createEmployeesService({ db, logger }: { db: Database; logger: L
 
     async update(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'employee.employee.update');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const { version, status, ...values } = updateEmployeeInputSchema.parse(raw);
       try {
         await run(viewer, async (tx) => {

@@ -31,6 +31,11 @@ export const PERMISSION_CATALOGUE: readonly PermissionDef[] = [
   { key: 'attendance.record.manage', module: 'attendance', label: 'Correct attendance' },
   { key: 'attendance.shift.view', module: 'attendance', label: 'View shifts' },
   { key: 'attendance.shift.manage', module: 'attendance', label: 'Manage shifts' },
+  {
+    key: 'attendance.holiday.manage',
+    module: 'attendance',
+    label: 'Manage holidays and weekly offs',
+  },
   { key: 'attendance.leave.view', module: 'attendance', label: 'View leave requests' },
   { key: 'attendance.leave.approve', module: 'attendance', label: 'Approve or reject leave' },
   { key: 'attendance.leave-type.manage', module: 'attendance', label: 'Manage leave types' },

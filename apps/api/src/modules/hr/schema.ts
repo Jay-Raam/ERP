@@ -1,5 +1,6 @@
 import type { GraphQLContext } from '../../graphql/context';
 import type { AttendanceService } from './attendance.service';
+import type { CalendarService } from './calendar.service';
 import type { EmployeesService } from './employees.service';
 import type { LeaveService } from './leave.service';
 
@@ -69,7 +70,39 @@ export const hrTypeDefs = /* GraphQL */ `
     offset: Int
   }
 
+  type Holiday {
+    id: ID!
+    holidayDate: String!
+    name: String!
+    version: Int!
+  }
+
+  type WorkCalendar {
+    timeZone: String!
+    "0 = Sunday … 6 = Saturday."
+    weeklyOffDays: [Int!]!
+    year: Int!
+    holidays: [Holiday!]!
+  }
+
+  input WeeklyOffInput {
+    weeklyOffDays: [Int!]!
+  }
+
+  input HolidayInput {
+    holidayDate: String!
+    name: String!
+  }
+
+  input UpdateHolidayInput {
+    holidayDate: String!
+    name: String!
+    version: Int!
+  }
+
   extend type Query {
+    "Weekly off days and the holidays of one year (default: this year)."
+    workCalendar(year: Int): WorkCalendar!
     employees(input: ListEmployeesInput): EmployeePage!
     employee(id: ID!): Employee!
     "The signed-in user's own employee record, or null if none is linked."
@@ -77,6 +110,10 @@ export const hrTypeDefs = /* GraphQL */ `
   }
 
   extend type Mutation {
+    updateWeeklyOff(input: WeeklyOffInput!): WorkCalendar!
+    createHoliday(input: HolidayInput!): Holiday!
+    updateHoliday(id: ID!, input: UpdateHolidayInput!): Holiday!
+    deleteHoliday(id: ID!): Boolean!
     createEmployee(input: CreateEmployeeInput!): Employee!
     updateEmployee(id: ID!, input: UpdateEmployeeInput!): Employee!
   }
@@ -94,6 +131,7 @@ export const hrTypeDefs = /* GraphQL */ `
     leave
     absent
     off
+    holiday
     upcoming
   }
 
@@ -131,6 +169,8 @@ export const hrTypeDefs = /* GraphQL */ `
     workedMinutes: Int!
     late: Boolean!
     open: Boolean!
+    "Name of the organisation holiday, when status is holiday."
+    holidayName: String
     punches: [Punch!]!
   }
 
@@ -345,6 +385,7 @@ type DayLike = {
   workedMinutes: number;
   late: boolean;
   open: boolean;
+  holidayName?: string | null;
   punches: { id?: string; kind: string; at: Date }[];
 };
 
@@ -373,10 +414,13 @@ const shapeLeave = <L extends { decidedAt: Date | null; createdAt: Date }>(l: L)
 export function hrResolvers(
   employees: EmployeesService,
   attendance: AttendanceService,
+  calendar: CalendarService,
   leave: LeaveService,
 ) {
   return {
     Query: {
+      workCalendar: async (_p: unknown, a: { year?: number | null }, ctx: GraphQLContext) =>
+        calendar.calendar(await ctx.viewer(), { year: a.year }),
       employees: async (_p: unknown, a: { input?: unknown }, ctx: GraphQLContext) => {
         const page = await employees.list(await ctx.viewer(), a.input);
         return { total: page.total, items: page.items.map(isoDate) };
@@ -413,6 +457,14 @@ export function hrResolvers(
       },
     },
     Mutation: {
+      updateWeeklyOff: async (_p: unknown, a: Args<unknown>, ctx: GraphQLContext) =>
+        calendar.updateWeeklyOff(await ctx.viewer(), a.input),
+      createHoliday: async (_p: unknown, a: Args<unknown>, ctx: GraphQLContext) =>
+        calendar.createHoliday(await ctx.viewer(), a.input),
+      updateHoliday: async (_p: unknown, a: IdArgs<unknown>, ctx: GraphQLContext) =>
+        calendar.updateHoliday(await ctx.viewer(), a.id, a.input),
+      deleteHoliday: async (_p: unknown, a: { id: string }, ctx: GraphQLContext) =>
+        calendar.deleteHoliday(await ctx.viewer(), a.id),
       createEmployee: async (_p: unknown, a: Args<unknown>, ctx: GraphQLContext) =>
         isoDate(await employees.create(await ctx.viewer(), a.input)),
       updateEmployee: async (_p: unknown, a: IdArgs<unknown>, ctx: GraphQLContext) =>

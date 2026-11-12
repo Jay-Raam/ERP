@@ -51,6 +51,20 @@ export const shifts = pgTable(
   ],
 );
 
+/** Days the whole organisation is closed (Diwali, Republic Day...). Nobody is marked absent on them. */
+export const holidays = pgTable(
+  'holidays',
+  {
+    id: id(),
+    tenantId: tenantId(),
+    holidayDate: date('holiday_date', { mode: 'string' }).notNull(),
+    name: text('name').notNull(),
+    ...timestamps,
+    version: version(),
+  },
+  (t) => [unique('holidays_tenant_date_unique').on(t.tenantId, t.holidayDate)],
+);
+
 export const employees = pgTable(
   'employees',
   {

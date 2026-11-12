@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { addDays, formatDateRange, formatDuration, formatTime, zonedToIso } from './format';
+import {
+  DAY_STATUS_LABEL,
+  WEEKDAYS,
+  addDays,
+  describeWeeklyOff,
+  formatDateRange,
+  formatDuration,
+  formatTime,
+  zonedToIso,
+} from './format';
 
 describe('zonedToIso', () => {
   it('reads wall-clock time in the organisation zone, not the browser zone', () => {
@@ -29,5 +38,20 @@ describe('formatting', () => {
   it('adds days across month ends', () => {
     expect(addDays('2026-11-30', 1)).toBe('2026-12-01');
     expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+});
+
+describe('weekly off wording', () => {
+  it('lists the days in plain words', () => {
+    expect(describeWeeklyOff([])).toBe('none');
+    expect(describeWeeklyOff([0])).toBe('Sunday');
+    expect(describeWeeklyOff([6, 0])).toBe('Sunday and Saturday');
+    expect(describeWeeklyOff([5, 6, 0])).toBe('Sunday, Friday and Saturday');
+  });
+
+  it('has a label for holidays and weekday names starting at Sunday', () => {
+    expect(DAY_STATUS_LABEL.holiday).toBe('Holiday');
+    expect(WEEKDAYS[0]).toBe('Sunday');
+    expect(WEEKDAYS).toHaveLength(7);
   });
 });

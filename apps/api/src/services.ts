@@ -6,6 +6,7 @@ import type { Database } from './db/client';
 import { createAdminService } from './modules/admin/service';
 import { createAuthService } from './modules/auth/service';
 import { createAttendanceService } from './modules/hr/attendance.service';
+import { createCalendarService } from './modules/hr/calendar.service';
 import { createEmployeesService } from './modules/hr/employees.service';
 import { createLeaveService } from './modules/hr/leave.service';
 import { createOrgService } from './modules/org/service';
@@ -39,6 +40,7 @@ export function createServices({
     admin: createAdminService({ db, logger }),
     employees: createEmployeesService({ db, logger }),
     attendance: createAttendanceService({ db, logger, now }),
+    calendar: createCalendarService({ db, logger, now }),
     leave: createLeaveService({ db, logger, now }),
   };
 }

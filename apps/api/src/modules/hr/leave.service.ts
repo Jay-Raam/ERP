@@ -19,6 +19,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '../../core/errors';
+import { parseId } from '../../core/errors/parse-id';
 import type { Logger } from '../../core/logger';
 import type { Database, TenantTx } from '../../db/client';
 import { isUniqueViolation } from '../../db/errors';
@@ -130,7 +131,7 @@ export function createLeaveService({ db, logger, now = () => new Date() }: Leave
 
     async updateType(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'attendance.leave-type.manage');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const { version, ...values } = updateLeaveTypeInputSchema.parse(raw);
       await run(viewer, async (tx) => {
         if (!(await repo.findLeaveType(tx, id))) throw new NotFoundError('Leave type not found');
@@ -236,7 +237,7 @@ export function createLeaveService({ db, logger, now = () => new Date() }: Leave
     /** The requester withdraws a pending request, or an approved one that has not started. */
     async cancel(viewer: Viewer, rawId: unknown) {
       requirePermission(viewer, 'attendance.leave.request-own');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       await run(viewer, async (tx) => {
         const found = await repo.findLeave(tx, id);
         // Someone else's request looks exactly like a missing one.
@@ -268,7 +269,7 @@ export function createLeaveService({ db, logger, now = () => new Date() }: Leave
 
     async decide(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'attendance.leave.approve');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const input = decideLeaveInputSchema.parse(raw);
       await run(viewer, async (tx) => {
         const found = await repo.findLeave(tx, id);

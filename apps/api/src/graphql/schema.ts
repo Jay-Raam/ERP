@@ -40,7 +40,7 @@ export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
       orgResolvers(services.org),
       authResolvers,
       adminResolvers(services.admin),
-      hrResolvers(services.employees, services.attendance, services.leave),
+      hrResolvers(services.employees, services.attendance, services.calendar, services.leave),
     ],
   });
 }

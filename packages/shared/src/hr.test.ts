@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createHolidayInputSchema,
+  workCalendarInputSchema,
   attendanceRangeInputSchema,
   createEmployeeInputSchema,
   createShiftInputSchema,
@@ -137,6 +139,32 @@ describe('manualPunchInputSchema', () => {
     expect(
       manualPunchInputSchema.safeParse({ ...base, inAt: '2026-11-10T09:00:00Z', reason: ' ' })
         .success,
+    ).toBe(false);
+  });
+});
+
+describe('work calendar inputs', () => {
+  it('sorts and de-duplicates weekly off days, and keeps at least one working day', () => {
+    expect(workCalendarInputSchema.parse({ weeklyOffDays: [6, 0, 6] }).weeklyOffDays).toEqual([
+      0, 6,
+    ]);
+    expect(workCalendarInputSchema.parse({ weeklyOffDays: [] }).weeklyOffDays).toEqual([]);
+    expect(
+      workCalendarInputSchema.safeParse({ weeklyOffDays: [0, 1, 2, 3, 4, 5, 6] }).success,
+    ).toBe(false);
+    expect(workCalendarInputSchema.safeParse({ weeklyOffDays: [7] }).success).toBe(false);
+    expect(workCalendarInputSchema.safeParse({ weeklyOffDays: [0], extra: 1 }).success).toBe(false);
+  });
+
+  it('validates holidays', () => {
+    expect(
+      createHolidayInputSchema.safeParse({ holidayDate: '2026-12-25', name: 'Christmas' }).success,
+    ).toBe(true);
+    expect(
+      createHolidayInputSchema.safeParse({ holidayDate: '2026-02-30', name: 'Christmas' }).success,
+    ).toBe(false);
+    expect(
+      createHolidayInputSchema.safeParse({ holidayDate: '2026-12-25', name: '<i>x</i>' }).success,
     ).toBe(false);
   });
 });

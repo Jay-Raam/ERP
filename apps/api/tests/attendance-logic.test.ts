@@ -207,3 +207,51 @@ describe('computeBalance', () => {
     ).toBe(0);
   });
 });
+
+describe('holidays', () => {
+  const base = {
+    today: '2026-11-20',
+    joiningDate: '2026-01-01',
+    shift,
+    timeZone: IST,
+    punches: [],
+    leave: [],
+    weeklyOff: [0],
+  };
+  const holidays = new Map([
+    ['2026-11-15', 'Diwali'], // a Sunday: the holiday name wins over the plain "off"
+    ['2026-11-17', 'Founders day'],
+  ]);
+
+  it('marks a holiday with no punches as a holiday, ahead of off and leave', () => {
+    const days = buildDays({
+      ...base,
+      from: '2026-11-15',
+      to: '2026-11-18',
+      holidays,
+      leave: [{ startDate: '2026-11-17', endDate: '2026-11-18' }],
+    });
+    expect(days.map((d) => d.status)).toEqual(['holiday', 'absent', 'holiday', 'leave']);
+    expect(days[0]!.holidayName).toBe('Diwali');
+    expect(days[1]!.holidayName).toBeNull();
+  });
+
+  it('shows the work done when someone punches on a holiday', () => {
+    const days = buildDays({
+      ...base,
+      from: '2026-11-17',
+      to: '2026-11-17',
+      holidays,
+      punches: [
+        { kind: 'in', at: new Date('2026-11-17T04:00:00Z') },
+        { kind: 'out', at: new Date('2026-11-17T12:00:00Z') },
+      ],
+    });
+    expect(days[0]!.status).toBe('present');
+  });
+
+  it('is unchanged when there are no holidays', () => {
+    const days = buildDays({ ...base, from: '2026-11-16', to: '2026-11-17' });
+    expect(days.map((d) => d.status)).toEqual(['absent', 'absent']);
+  });
+});

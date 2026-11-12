@@ -39,6 +39,7 @@ export const DAY_STATUS_LABEL: Record<DayStatus, string> = {
   leave: 'On leave',
   absent: 'Absent',
   off: 'Day off',
+  holiday: 'Holiday',
   upcoming: '',
 };
 
@@ -96,4 +97,23 @@ export function zonedToIso(local: string, timeZone: string): string {
   let utc = guess - offsetMinutes(guess, timeZone) * 60_000;
   utc = guess - offsetMinutes(utc, timeZone) * 60_000; // settle across a DST change
   return new Date(utc).toISOString();
+}
+
+/** Index 0 = Sunday, matching the API's weeklyOffDays. */
+export const WEEKDAYS = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+] as const;
+
+/** "Sunday", "Saturday and Sunday", "Friday, Saturday and Sunday" or "none". */
+export function describeWeeklyOff(days: readonly number[]): string {
+  const names = [...days].sort((a, b) => a - b).map((d) => WEEKDAYS[d] ?? '');
+  if (names.length === 0) return 'none';
+  if (names.length === 1) return names[0]!;
+  return `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
 }

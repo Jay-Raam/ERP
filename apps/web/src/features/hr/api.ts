@@ -5,7 +5,15 @@ import { gqlRequest } from '@/lib/api-client';
 
 export type Status = 'active' | 'inactive';
 export type DayStatus =
-  'present' | 'half_day' | 'short' | 'incomplete' | 'leave' | 'absent' | 'off' | 'upcoming';
+  | 'present'
+  | 'half_day'
+  | 'short'
+  | 'incomplete'
+  | 'leave'
+  | 'absent'
+  | 'off'
+  | 'holiday'
+  | 'upcoming';
 export type LeaveStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export interface Employee {
@@ -82,6 +90,7 @@ export interface AttendanceDay {
   workedMinutes: number;
   late: boolean;
   open: boolean;
+  holidayName?: string | null;
   punches: { id: string | null; kind: 'in' | 'out'; at: string }[];
 }
 
@@ -100,13 +109,15 @@ const SHIFT_FIELDS =
 const TYPE_FIELDS = 'id code name annualDays paid status version';
 const LEAVE_FIELDS = `id employeeId employeeName employeeCode leaveTypeId leaveTypeName leaveTypeCode
   startDate endDate days reason status decisionNote createdAt version`;
-const DAY_FIELDS = 'date status firstIn lastOut workedMinutes late open punches { id kind at }';
+const DAY_FIELDS =
+  'date status firstIn lastOut workedMinutes late open holidayName punches { id kind at }';
 
 const keys = {
   employees: ['hr', 'employees'] as const,
   today: ['hr', 'today'] as const,
   attendance: ['hr', 'attendance'] as const,
   shifts: ['hr', 'shifts'] as const,
+  calendar: ['hr', 'calendar'] as const,
   leaveTypes: ['hr', 'leave-types'] as const,
   balances: ['hr', 'balances'] as const,
   leave: ['hr', 'leave'] as const,
@@ -260,6 +271,77 @@ export const useSaveShift = () =>
             input: vars.input,
           }),
     [keys.shifts, keys.attendance],
+  );
+
+// ----------------------------------------------------------------- calendar
+
+export interface Holiday {
+  id: string;
+  holidayDate: string;
+  name: string;
+  version: number;
+}
+
+export interface WorkCalendar {
+  timeZone: string;
+  /** 0 = Sunday … 6 = Saturday. */
+  weeklyOffDays: number[];
+  year: number;
+  holidays: Holiday[];
+}
+
+const CALENDAR_FIELDS = 'timeZone weeklyOffDays year holidays { id holidayDate name version }';
+
+/** `year` null asks for the current year (in the organisation's time zone). */
+export const useWorkCalendar = (year: number | null, enabled = true) =>
+  useQuery({
+    enabled,
+    queryKey: [...keys.calendar, year],
+    placeholderData: (previous) => previous,
+    queryFn: async () =>
+      (
+        await gqlRequest<{ workCalendar: WorkCalendar }>(
+          `query($year: Int){ workCalendar(year:$year){ ${CALENDAR_FIELDS} } }`,
+          { year },
+        )
+      ).workCalendar,
+  });
+
+// Days off change what the attendance views show, so those refresh too.
+const CALENDAR_INVALIDATES = [keys.calendar, keys.attendance, keys.today];
+
+export const useSaveWeeklyOff = () =>
+  useAction(
+    (weeklyOffDays: number[]) =>
+      gqlRequest(
+        `mutation($input: WeeklyOffInput!){ updateWeeklyOff(input:$input){ weeklyOffDays } }`,
+        { input: { weeklyOffDays } },
+      ),
+    CALENDAR_INVALIDATES,
+  );
+
+export const useSaveHoliday = () =>
+  useAction(
+    async (vars: {
+      id?: string;
+      version?: number;
+      input: { holidayDate: string; name: string };
+    }) =>
+      vars.id
+        ? gqlRequest(
+            `mutation($id: ID!, $input: UpdateHolidayInput!){ updateHoliday(id:$id,input:$input){ id } }`,
+            { id: vars.id, input: { ...vars.input, version: vars.version } },
+          )
+        : gqlRequest(`mutation($input: HolidayInput!){ createHoliday(input:$input){ id } }`, {
+            input: vars.input,
+          }),
+    CALENDAR_INVALIDATES,
+  );
+
+export const useDeleteHoliday = () =>
+  useAction(
+    (id: string) => gqlRequest(`mutation($id: ID!){ deleteHoliday(id:$id) }`, { id }),
+    CALENDAR_INVALIDATES,
   );
 
 // -------------------------------------------------------------------- leave

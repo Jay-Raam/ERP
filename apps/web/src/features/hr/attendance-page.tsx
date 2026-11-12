@@ -27,6 +27,7 @@ import { FormActions } from '@/features/admin/branches-page';
 import { useBranches } from '@/features/admin/api';
 import { usePermission, useViewer } from '@/features/auth/viewer';
 import { handleApiError } from '@/lib/handle-api-error';
+import { CalendarView } from './calendar-view';
 import {
   useAttendance,
   useManualPunch,
@@ -47,7 +48,7 @@ import {
   zonedToIso,
 } from './format';
 
-type Tab = 'today' | 'team' | 'shifts';
+type Tab = 'today' | 'team' | 'shifts' | 'calendar';
 
 export function AttendancePage() {
   const canTeam = usePermission('attendance.record.view');
@@ -61,6 +62,7 @@ export function AttendancePage() {
     ...(canOwn ? [{ id: 'today' as const, label: 'My day' }] : []),
     ...(canTeam ? [{ id: 'team' as const, label: 'Team' }] : []),
     ...(canShifts ? [{ id: 'shifts' as const, label: 'Shifts' }] : []),
+    { id: 'calendar' as const, label: 'Holidays' },
   ];
 
   return (
@@ -89,6 +91,7 @@ export function AttendancePage() {
       {tab === 'today' && canOwn ? <MyDay canPunch={canPunch} /> : null}
       {tab === 'team' && canTeam ? <TeamView /> : null}
       {tab === 'shifts' && canShifts ? <ShiftsView /> : null}
+      {tab === 'calendar' ? <CalendarView /> : null}
     </div>
   );
 }
@@ -226,12 +229,19 @@ function DayBadge({ day }: { day: AttendanceDay }) {
       ? 'success'
       : day.status === 'absent'
         ? 'destructive'
-        : day.status === 'leave' || day.status === 'incomplete' || day.status === 'off'
+        : day.status === 'leave' ||
+            day.status === 'incomplete' ||
+            day.status === 'off' ||
+            day.status === 'holiday'
           ? 'outline'
           : 'secondary';
   return (
     <span className="inline-flex items-center gap-1.5">
-      <Badge variant={variant}>{DAY_STATUS_LABEL[day.status]}</Badge>
+      <Badge variant={variant} title={day.holidayName ?? undefined}>
+        {day.status === 'holiday' && day.holidayName
+          ? day.holidayName
+          : DAY_STATUS_LABEL[day.status]}
+      </Badge>
       {day.late ? <Badge variant="destructive">Late</Badge> : null}
     </span>
   );

@@ -142,6 +142,35 @@ export const updateShiftInputSchema = z
   })
   .superRefine(checkShift);
 
+// ------------------------------------------------------------ work calendar
+
+export const workCalendarInputSchema = z.strictObject({
+  /** 0 = Sunday … 6 = Saturday. Not all seven: there must be a working day. */
+  weeklyOffDays: z
+    .array(z.number().int().min(0).max(6))
+    .max(6, 'Keep at least one working day')
+    .transform((days) => [...new Set(days)].sort((a, b) => a - b)),
+});
+
+const holidayFields = {
+  holidayDate: dateSchema,
+  name: plainText('Holiday name', 2, 80),
+};
+export const createHolidayInputSchema = z.strictObject(holidayFields);
+export const updateHolidayInputSchema = z.strictObject({
+  ...holidayFields,
+  version: z.number().int().min(1),
+});
+export const listHolidaysInputSchema = z.strictObject({
+  year: z
+    .number()
+    .int()
+    .min(2000)
+    .max(2100)
+    .nullish()
+    .transform((v) => v ?? undefined),
+});
+
 // --------------------------------------------------------------- attendance
 
 export const punchInputSchema = z.strictObject({

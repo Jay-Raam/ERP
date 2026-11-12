@@ -121,3 +121,9 @@ export async function buildCompany(app: TestApp, org: Org) {
 
   return { owner, roleId, ho, br2, shiftId, person };
 }
+
+export const WORK_CALENDAR = `query($y: Int){ workCalendar(year:$y){ timeZone weeklyOffDays year holidays { id holidayDate name version } } }`;
+export const SET_WEEKLY_OFF = `mutation($i: WeeklyOffInput!){ updateWeeklyOff(input:$i){ weeklyOffDays holidays { id } } }`;
+export const CREATE_HOLIDAY = `mutation($i: HolidayInput!){ createHoliday(input:$i){ id holidayDate name version } }`;
+export const UPDATE_HOLIDAY = `mutation($id: ID!, $i: UpdateHolidayInput!){ updateHoliday(id:$id,input:$i){ id holidayDate name version } }`;
+export const DELETE_HOLIDAY = `mutation($id: ID!){ deleteHoliday(id:$id) }`;

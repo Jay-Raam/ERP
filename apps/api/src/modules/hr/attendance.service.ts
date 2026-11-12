@@ -2,7 +2,6 @@ import {
   attendanceRangeInputSchema,
   createShiftInputSchema,
   hasPermission,
-  idSchema,
   manualPunchInputSchema,
   punchInputSchema,
   updateShiftInputSchema,
@@ -10,11 +9,13 @@ import {
 } from '@erp/shared';
 import { requirePermission } from '../../core/auth/guard';
 import { BusinessRuleError, ConflictError, ForbiddenError, NotFoundError } from '../../core/errors';
+import { parseId } from '../../core/errors/parse-id';
 import type { Logger } from '../../core/logger';
 import type { Database, TenantTx } from '../../db/client';
 import { isUniqueViolation } from '../../db/errors';
 import { withTenant } from '../../db/tenant';
 import * as repo from './attendance.repository';
+import * as calendarRepo from './calendar.repository';
 import {
   MIN_GAP_SECONDS,
   buildDays,
@@ -29,6 +30,9 @@ import { inScope, scopeOf } from './scope';
 const STALE = 'Someone else changed this record. Reload it and try again.';
 /** Clock skew tolerated for manual entries. */
 const FUTURE_TOLERANCE_MS = 60_000;
+
+const holidayMap = (rows: { holidayDate: string; name: string }[]) =>
+  new Map(rows.map((r) => [r.holidayDate, r.name]));
 
 export interface AttendanceDeps {
   db: Database;
@@ -59,6 +63,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
     const date = localDate(now(), zone);
     const [shift] = shiftId ? await repo.shiftsByIds(tx, [shiftId]) : [];
     const punches = await repo.punchesInRange(tx, [employeeId], date, date, zone);
+    const holidays = holidayMap(await calendarRepo.holidaysBetween(tx, date, date));
     const [day] = buildDays({
       from: date,
       to: date,
@@ -69,6 +74,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
       shift: shift ? shiftRules(shift) : null,
       timeZone: zone,
       weeklyOff,
+      holidays,
     });
     return {
       date,
@@ -234,13 +240,15 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
         }
 
         const ids = people.map((p) => p.id);
-        const [punches, leave, shiftRows] = await Promise.all([
+        const [punches, leave, shiftRows, holidayRows] = await Promise.all([
           repo.punchesInRange(tx, ids, input.from, input.to, zone),
           repo.approvedLeaveInRange(tx, ids, input.from, input.to),
           repo.shiftsByIds(tx, [
             ...new Set(people.map((p) => p.shiftId).filter((x): x is string => !!x)),
           ]),
+          calendarRepo.holidaysBetween(tx, input.from, input.to),
         ]);
+        const holidays = holidayMap(holidayRows);
         const shiftById = new Map(shiftRows.map((s) => [s.id, s]));
 
         const items = people.map((p) => {
@@ -257,6 +265,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
             shift: shift ? shiftRules(shift) : null,
             timeZone: zone,
             weeklyOff,
+            holidays,
           });
           return { employee: p, days };
         });
@@ -295,7 +304,7 @@ export function createAttendanceService({ db, logger, now = () => new Date() }: 
 
     async updateShift(viewer: Viewer, rawId: unknown, raw: unknown) {
       requirePermission(viewer, 'attendance.shift.manage');
-      const id = idSchema.parse(rawId);
+      const id = parseId(rawId);
       const { version, ...values } = updateShiftInputSchema.parse(raw);
       try {
         await run(viewer, async (tx) => {

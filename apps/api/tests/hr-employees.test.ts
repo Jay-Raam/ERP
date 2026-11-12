@@ -92,6 +92,12 @@ describe('employees: data scope', () => {
     expect(code(res)).toBe('NOT_FOUND');
   });
 
+  it('names the id field when an id is malformed', async () => {
+    const res = await q(hr.agent, GET_EMPLOYEE, { id: 'not-a-uuid' });
+    expect(code(res)).toBe('VALIDATION_ERROR');
+    expect(res.body.errors[0].extensions.fieldErrors).toEqual({ id: ['Invalid id'] });
+  });
+
   it('stops a coordinator creating or moving people into another branch', async () => {
     const created = await q(hr.agent, CREATE_EMPLOYEE, {
       i: newEmployee(company.br2, { employeeCode: 'X-BR2' }),
