@@ -5,7 +5,7 @@ import { dateSchema } from './hr';
 import { positiveQuantity, warehouseCodeSchema } from './store';
 import { cleanText, optionalText, plainText } from './text';
 
-const uuid = z.uuid('Invalid id');
+export const uuid = z.uuid('Invalid id');
 
 const nullishInt = (min: number, max: number, fallback: number) =>
   z
@@ -16,12 +16,12 @@ const nullishInt = (min: number, max: number, fallback: number) =>
     .nullish()
     .transform((v) => v ?? fallback);
 
-const pageFields = {
+export const pageFields = {
   limit: nullishInt(1, 100, 25),
   offset: nullishInt(0, 100_000, 0),
 };
 
-const searchText = z
+export const searchText = z
   .string()
   .max(80)
   .nullish()
@@ -58,7 +58,7 @@ const optionalGstin = z
       .nullable(),
   );
 
-const supplierEditable = {
+export const partyEditable = {
   name: plainText('Supplier name', 2, 120),
   contactName: optionalText('Contact name', 80),
   email: optionalEmail,
@@ -69,12 +69,12 @@ const supplierEditable = {
 
 export const createSupplierInputSchema = z.strictObject({
   code: warehouseCodeSchema,
-  ...supplierEditable,
+  ...partyEditable,
 });
 
 /** The code is fixed once orders can refer to it. */
 export const updateSupplierInputSchema = z.strictObject({
-  ...supplierEditable,
+  ...partyEditable,
   status: z.enum(['active', 'inactive']),
   version: z.number().int().min(1),
 });
@@ -136,7 +136,7 @@ export const orderLinesSchema = z
     message: 'Each item can appear only once',
   });
 
-const orderEditable = {
+export const orderEditable = {
   supplierId: uuid,
   orderDate: dateSchema,
   expectedDate: dateSchema.nullish().transform((v) => v ?? null),
@@ -144,7 +144,7 @@ const orderEditable = {
   lines: orderLinesSchema,
 };
 
-function expectedNotBefore(
+export function expectedNotBefore(
   v: { orderDate: string; expectedDate: string | null },
   ctx: z.RefinementCtx,
 ) {

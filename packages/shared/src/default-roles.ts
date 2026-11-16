@@ -45,6 +45,9 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
       'purchase.receipt.*',
       'accounts.*.view',
       'sale.*.view',
+      'sale.customer.*',
+      'sale.order.*',
+      'sale.delivery.*',
       'report.operational.view',
     ],
   },
@@ -56,7 +59,9 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
     permissions: [
       ...SELF_SERVICE,
       'sale.*.*',
-      'accounts.*.view',
+      // Sales staff follow their customers' invoices and receipts; the books stay with Accounts.
+      'accounts.invoice.view',
+      'accounts.payment.view',
       'store.*.view',
       'report.sales.view',
     ],
@@ -68,8 +73,11 @@ export const DEFAULT_ROLES: readonly RoleSeed[] = [
     permissions: [
       ...SELF_SERVICE,
       'accounts.*.*',
+      'payroll.structure.view',
+      'payroll.structure.manage',
       'payroll.run.view',
       'payroll.run.prepare',
+      'payroll.run.pay',
       'purchase.supplier.view',
       'purchase.order.view',
       'purchase.receipt.view',

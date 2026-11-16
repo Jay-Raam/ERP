@@ -92,8 +92,8 @@ export const NAVIGATION: readonly NavItem[] = [
     href: '/sale',
     icon: ShoppingCart,
     group: 'Operations',
-    anyOf: ['sale.invoice.view'],
-    ready: false,
+    anyOf: ['sale.order.view', 'sale.customer.view'],
+    ready: true,
   },
   {
     label: 'Store',
@@ -116,16 +116,21 @@ export const NAVIGATION: readonly NavItem[] = [
     href: '/accounts',
     icon: Landmark,
     group: 'Finance',
-    anyOf: ['accounts.ledger.view'],
-    ready: false,
+    anyOf: [
+      'accounts.invoice.view',
+      'accounts.payment.view',
+      'accounts.journal.view',
+      'accounts.report.view',
+    ],
+    ready: true,
   },
   {
     label: 'Payroll',
     href: '/payroll',
     icon: Wallet,
     group: 'Finance',
-    anyOf: ['payroll.run.view', 'payroll.payslip.view-own'],
-    ready: false,
+    anyOf: ['payroll.run.view', 'payroll.structure.view', 'payroll.payslip.view-own'],
+    ready: true,
   },
   {
     label: 'Reports',
@@ -133,7 +138,7 @@ export const NAVIGATION: readonly NavItem[] = [
     icon: BarChart3,
     group: 'Finance',
     anyOf: ['report.operational.view', 'report.sales.view', 'report.financial.view'],
-    ready: false,
+    ready: true,
   },
 ];
 

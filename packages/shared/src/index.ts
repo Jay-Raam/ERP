@@ -11,3 +11,7 @@ export * from './schemas/hr';
 export * from './schemas/store';
 export * from './purchase-math';
 export * from './schemas/purchase';
+export * from './schemas/sales';
+export * from './schemas/accounts';
+export * from './schemas/payroll';
+export * from './schemas/reports';

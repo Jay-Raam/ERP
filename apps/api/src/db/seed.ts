@@ -5,6 +5,8 @@ import * as orgRepo from '../modules/org/repository';
 import * as adminRepo from '../modules/admin/repository';
 import { ensureHrDefaults } from '../modules/hr/defaults.repository';
 import { insertEmployee } from '../modules/hr/employees.repository';
+import { ensureAccountDefaults } from '../modules/accounts/defaults.repository';
+import { insertStructure } from '../modules/payroll/payroll.repository';
 import { ensureStoreDefaults } from '../modules/store/defaults.repository';
 import * as storeRepo from '../modules/store/store.repository';
 import { createDatabase } from './client';
@@ -22,6 +24,18 @@ export const DEMO_USERS = [
   { email: 'accounts@demo.test', fullName: 'Karthik S', role: 'account_team', branches: ['HO'] },
   { email: 'employee@demo.test', fullName: 'Meena Iyer', role: 'employee', branches: ['CHN-1'] },
 ] as const;
+
+/** Monthly pay for the demo staff, so Payroll has something to work with. */
+const DEMO_SALARIES: Record<
+  string,
+  { basic: string; hra: string; allowance: string; deductions: string }
+> = {
+  'owner@demo.test': { basic: '90000', hra: '30000', allowance: '10000', deductions: '1800' },
+  'admin@demo.test': { basic: '45000', hra: '15000', allowance: '5000', deductions: '1800' },
+  'sales@demo.test': { basic: '25000', hra: '8000', allowance: '2000', deductions: '1500' },
+  'accounts@demo.test': { basic: '30000', hra: '10000', allowance: '3000', deductions: '1800' },
+  'employee@demo.test': { basic: '18000', hra: '6000', allowance: '1000', deductions: '1080' },
+};
 
 const DEMO_ITEMS = [
   {
@@ -108,7 +122,7 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
         );
         if (u.role === 'super_admin') adminId = userId;
         n += 1;
-        await insertEmployee(tx, {
+        const employeeId = await insertEmployee(tx, {
           tenantId,
           employeeCode: `EMP-${String(n).padStart(3, '0')}`,
           fullName: u.fullName,
@@ -121,10 +135,12 @@ export async function seedDemo(url: string): Promise<'created' | 'exists'> {
           shiftId: general?.id ?? null,
           userId,
         });
+        await insertStructure(tx, { tenantId, employeeId, ...DEMO_SALARIES[u.email]! });
       }
 
       // Starter store: one warehouse at head office and a few items, some of them running low.
       await ensureStoreDefaults(tx, tenantId);
+      await ensureAccountDefaults(tx, tenantId);
       const [main] = await storeRepo.listWarehouses(tx, { scope: { kind: 'organisation' } });
       for (const item of DEMO_ITEMS) {
         const itemId = await storeRepo.insertItem(tx, {

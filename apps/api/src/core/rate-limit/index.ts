@@ -26,6 +26,10 @@ export interface Limits {
   refreshPerIp: LimitRule;
   /** Stock changes by one user: the ledger is append-only, so a flood cannot be cleaned up. */
   stockWritesPerUser: LimitRule;
+  /** Accounting writes by one user: journal entries and payments are never deleted. */
+  accountsWritesPerUser: LimitRule;
+  /** Payroll writes by one user: salary structures and payroll runs move real money. */
+  payrollWritesPerUser: LimitRule;
 }
 
 const MINUTE = 60_000;
@@ -38,6 +42,8 @@ export const DEFAULT_LIMITS: Limits = {
   registerPerIp: { limit: 5, windowMs: 60 * MINUTE },
   refreshPerIp: { limit: 60, windowMs: MINUTE },
   stockWritesPerUser: { limit: 120, windowMs: MINUTE },
+  accountsWritesPerUser: { limit: 120, windowMs: MINUTE },
+  payrollWritesPerUser: { limit: 60, windowMs: MINUTE },
 };
 
 export function retryMessage(what: string, retryAfterMs: number): string {

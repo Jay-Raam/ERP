@@ -10,6 +10,10 @@ import { createCalendarService } from './modules/hr/calendar.service';
 import { createEmployeesService } from './modules/hr/employees.service';
 import { createLeaveService } from './modules/hr/leave.service';
 import { createPurchaseService } from './modules/purchase/purchase.service';
+import { createAccountsService } from './modules/accounts/accounts.service';
+import { createReportsService } from './modules/reports/reports.service';
+import { createPayrollService } from './modules/payroll/payroll.service';
+import { createSalesService } from './modules/sales/sales.service';
 import { createStoreService } from './modules/store/store.service';
 import { createOrgService } from './modules/org/service';
 
@@ -46,6 +50,10 @@ export function createServices({
     leave: createLeaveService({ db, logger, now }),
     store: createStoreService({ db, logger, limiter, limits }),
     purchase: createPurchaseService({ db, logger, limiter, limits }),
+    sales: createSalesService({ db, logger, limiter, limits }),
+    accounts: createAccountsService({ db, logger, limiter, limits, now }),
+    payroll: createPayrollService({ db, logger, limiter, limits, now }),
+    reports: createReportsService({ db, logger, now }),
   };
 }
 

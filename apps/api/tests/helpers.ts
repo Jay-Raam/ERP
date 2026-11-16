@@ -23,6 +23,8 @@ const RELAXED: Partial<Limits> = {
   loginPerIp: { limit: 100_000, windowMs: 60_000 },
   refreshPerIp: { limit: 100_000, windowMs: 60_000 },
   stockWritesPerUser: { limit: 100_000, windowMs: 60_000 },
+  accountsWritesPerUser: { limit: 100_000, windowMs: 60_000 },
+  payrollWritesPerUser: { limit: 100_000, windowMs: 60_000 },
 };
 
 export function testApp(

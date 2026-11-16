@@ -123,11 +123,13 @@ export async function updateSupplier(
 
 // ------------------------------------------------------------------ numbers
 
+export type DocumentKind = 'PO' | 'GRN' | 'SO' | 'DN' | 'INV' | 'BILL' | 'RCT' | 'PAY' | 'JE';
+
 /** Next document number for this kind, e.g. PO-000007. Rolls back with the transaction: no gaps. */
 export async function nextNumber(
   tx: TenantTx,
   tenantId: string,
-  kind: 'PO' | 'GRN',
+  kind: DocumentKind,
 ): Promise<string> {
   const rows = await tx.execute<{ last_value: number }>(sql`
     insert into document_counters (tenant_id, kind, last_value)

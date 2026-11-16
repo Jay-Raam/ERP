@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { CreateInvoiceDialog } from '@/features/accounts/create-invoice-dialog';
 import { useBranches } from '@/features/admin/api';
 import { QueryState } from '@/features/admin/async';
 import { FormActions } from '@/features/admin/branches-page';
@@ -450,6 +451,8 @@ function DetailModal({
   const canCancel = usePermission('purchase.order.cancel');
   const canCreate = usePermission('purchase.order.create');
   const canReceive = usePermission('purchase.receipt.create');
+  const canInvoice = usePermission('accounts.invoice.create');
+  const [invoicing, setInvoicing] = useState<{ id: string; number: string } | null>(null);
   const decide = useDecideOrder();
   const [receiving, setReceiving] = useState(false);
 
@@ -555,6 +558,17 @@ function DetailModal({
                         </li>
                       ))}
                     </ul>
+                    {canInvoice ? (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setInvoicing({ id: r.id, number: r.number })}
+                        >
+                          Create bill
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -589,6 +603,13 @@ function DetailModal({
                 <Button onClick={() => setReceiving(true)}>Receive goods</Button>
               ) : null}
             </div>
+
+            <CreateInvoiceDialog
+              kind="purchase"
+              sourceId={invoicing?.id ?? null}
+              sourceNumber={invoicing?.number ?? ''}
+              onClose={() => setInvoicing(null)}
+            />
 
             <Modal
               open={receiving}

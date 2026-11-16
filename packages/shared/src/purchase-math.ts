@@ -63,3 +63,8 @@ export function orderAmounts(lines: LineAmounts[]): OrderAmounts {
     total: paiseToString(sum.total),
   };
 }
+
+/** Exact paise from a decimal string such as "12.5" (extra decimals are dropped). */
+export function parsePaise(value: string): bigint {
+  return scaled(value, 2);
+}

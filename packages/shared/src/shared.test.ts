@@ -86,9 +86,32 @@ describe('default roles', () => {
     expect(hasPermission(role('account_team').permissions, 'payroll.run.prepare')).toBe(true);
     expect(hasPermission(role('account_team').permissions, 'payroll.run.approve')).toBe(false);
     expect(hasPermission(role('sale_team').permissions, 'purchase.order.create')).toBe(false);
+    // Sales staff follow invoices and receipts; the ledger, reports and chart stay with Accounts.
+    expect(hasPermission(role('sale_team').permissions, 'accounts.invoice.view')).toBe(true);
+    expect(hasPermission(role('sale_team').permissions, 'accounts.payment.view')).toBe(true);
+    for (const key of ['accounts.journal.view', 'accounts.report.view', 'accounts.account.view']) {
+      expect(hasPermission(role('sale_team').permissions, key), key).toBe(false);
+    }
+    expect(hasPermission(role('sale_team').permissions, 'accounts.invoice.create')).toBe(false);
+    expect(hasPermission(role('sale_team').permissions, 'accounts.payment.create')).toBe(false);
+    // Confirming an order and posting money are separate duties.
+    expect(hasPermission(role('account_team').permissions, 'sale.order.approve')).toBe(false);
     expect(hasPermission(role('employee').permissions, 'sale.invoice.view')).toBe(false);
     expect(hasPermission(role('employee').permissions, 'payroll.payslip.view-own')).toBe(true);
     expect(hasPermission(role('employee').permissions, 'payroll.payslip.view')).toBe(false);
+    // Payroll: the clerk prepares and pays, only the owner approves, nobody else sees salaries.
+    for (const key of ['payroll.structure.view', 'payroll.structure.manage', 'payroll.run.pay']) {
+      expect(hasPermission(role('account_team').permissions, key), key).toBe(true);
+    }
+    for (const key of ['payroll.structure.view', 'payroll.run.view', 'payroll.run.pay']) {
+      expect(hasPermission(role('sale_team').permissions, key), key).toBe(false);
+      expect(hasPermission(role('employee').permissions, key), key).toBe(false);
+    }
+    // Reports follow the same split as the data behind them.
+    expect(hasPermission(role('account_team').permissions, 'report.financial.view')).toBe(true);
+    expect(hasPermission(role('sale_team').permissions, 'report.sales.view')).toBe(true);
+    expect(hasPermission(role('sale_team').permissions, 'report.financial.view')).toBe(false);
+    expect(hasPermission(role('employee').permissions, 'report.sales.view')).toBe(false);
   });
 });
 

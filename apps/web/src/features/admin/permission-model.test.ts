@@ -9,9 +9,9 @@ describe('permission model', () => {
   });
 
   it('keeps wildcard grants apart so saving never drops them', () => {
-    const { checked, extra } = splitGrants(['rbac.role.view', 'sale.*.*', 'report.sales.view']);
+    const { checked, extra } = splitGrants(['rbac.role.view', 'sale.*.*', 'legacy.report.view']);
     expect(checked).toEqual(['rbac.role.view']);
-    expect(extra).toEqual(['sale.*.*', 'report.sales.view']);
+    expect(extra).toEqual(['sale.*.*', 'legacy.report.view']);
   });
 
   it('toggles a key without duplicating it', () => {

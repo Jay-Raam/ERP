@@ -5,6 +5,10 @@ import { authResolvers, authTypeDefs } from '../modules/auth/schema';
 import { hrResolvers, hrTypeDefs } from '../modules/hr/schema';
 import { orgResolvers, orgTypeDefs } from '../modules/org/schema';
 import { purchaseResolvers, purchaseTypeDefs } from '../modules/purchase/schema';
+import { accountsResolvers, accountsTypeDefs } from '../modules/accounts/schema';
+import { payrollResolvers, payrollTypeDefs } from '../modules/payroll/schema';
+import { reportsResolvers, reportsTypeDefs } from '../modules/reports/schema';
+import { salesResolvers, salesTypeDefs } from '../modules/sales/schema';
 import { storeResolvers, storeTypeDefs } from '../modules/store/schema';
 import type { Services } from '../services';
 import type { GraphQLContext } from './context';
@@ -35,6 +39,10 @@ export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
       hrTypeDefs,
       storeTypeDefs,
       purchaseTypeDefs,
+      salesTypeDefs,
+      accountsTypeDefs,
+      payrollTypeDefs,
+      reportsTypeDefs,
     ],
     resolvers: [
       {
@@ -53,6 +61,10 @@ export function buildSchema(env: Pick<Env, 'INSTANCE_ID'>, services: Services) {
       hrResolvers(services.employees, services.attendance, services.calendar, services.leave),
       storeResolvers(services.store),
       purchaseResolvers(services.purchase),
+      salesResolvers(services.sales),
+      accountsResolvers(services.accounts),
+      payrollResolvers(services.payroll),
+      reportsResolvers(services.reports),
     ],
   });
 }
